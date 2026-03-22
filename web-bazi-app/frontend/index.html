@@ -1,6 +1,20 @@
 <!doctype html>
 <html lang="zh-CN">
   <head>
+    <!-- GitHub Pages 项目站路径为 /bazi/，补 base 避免无尾斜杠或子路径下脚本 404 -->
+    <script>
+      (function () {
+        try {
+          var h = location.hostname;
+          var p = location.pathname;
+          if (h.indexOf('github.io') !== -1 && (p === '/bazi' || p.indexOf('/bazi/') === 0)) {
+            var b = document.createElement('base');
+            b.href = '/bazi/';
+            document.head.insertBefore(b, document.head.firstChild);
+          }
+        } catch (e) {}
+      })();
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>八字排盘</title>

@@ -60,7 +60,13 @@ python3 app.py
 
 推送 `master`/`main` 后，Workflow **Deploy GitHub Pages** 会把 `web-bazi-app/frontend/` 中的静态文件发布为：
 
-**<https://chl-5g.github.io/bazi/>**
+**<https://chl-5g.github.io/bazi/>**（用户名是 **`chl-5g`**，不是 chi-5g）
+
+### 若打开是 404
+
+1. 确认地址拼写：**`chl-5g.github.io`**，路径 **`/bazi/`**（建议带末尾 `/`）。  
+2. 打开仓库 **Actions**，确认 **Deploy GitHub Pages** 最近一次为绿色；若曾失败，多半是当时仓库仍为 Private、尚未开启 Pages，已成功重跑后即恢复。  
+3. 强制刷新或无痕窗口（CDN 可能短暂缓存旧 404）。
 
 ### 你需要操作一次
 
