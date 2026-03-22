@@ -18,6 +18,7 @@ bazi/
 │   ├── frontend/          # index.html、config.js、ai-fortune/
 │   └── ai-divination/     # 程序化解读 / AI 逻辑占位（Python 包）
 ├── .github/workflows/     # GitHub Actions：部署 Pages
+├── render.yaml            # Render 一键部署 API（可选）
 ├── bazi-mcp/              # 八字 MCP Server（cantian-ai）
 ├── bazi-mcp-custom/       # 自定义 MCP
 └── README.md
@@ -66,20 +67,27 @@ python3 app.py
 1. GitHub 仓库 **Settings → Pages**  
 2. **Build and deployment → Source** 选 **GitHub Actions**（不要选 Branch 的 docs，除非你自己改流程）
 
-### 在线排盘要配 API
+### 在线排盘：部署 API + 自动注入地址（推荐）
 
-Pages 上没有 Python 后端。请：
+Pages 上没有 Python，需要公网 API。已帮你配好两条线：
 
-1. 把 Flask 部署到任意 **HTTPS** 主机（Render、Fly、自建等）  
-2. 修改仓库里 **`web-bazi-app/frontend/config.js`**（或仅在 gh-pages 构建产物里改），设置：
+**A. Render 一键部署（仓库根目录 `render.yaml`）**
 
-   ```js
-   window.__BAZI_API_BASE__ = 'https://你的-api-域名';
-   ```
+1. 打开 [Render](https://render.com) → **New** → **Blueprint** → 连接 GitHub 选 `chl-5g/bazi`。  
+2. 按向导创建 **bazi-api**（免费 Web Service，`rootDir` 指向 `web-bazi-app/backend`）。  
+3. 部署成功后复制公网地址，例如 `https://bazi-api-xxxx.onrender.com`（**不要**末尾 `/`）。
 
-3. 再推送，让 Actions 重新部署。
+**B. 让 GitHub Pages 自动指向该 API**
 
-后端已启用 **`/api/*` CORS**（`flask-cors`），允许浏览器从 `github.io` 调用。
+1. 打开仓库 **Settings → Secrets and variables → Actions → Variables**  
+2. 新建变量 **`BAZI_API_BASE`**，值填上一步的 URL（同上，无尾斜杠）。  
+3. **Actions** 里手动 **Re-run** 工作流 **Deploy GitHub Pages**，或随便改一个字再 push，让站点重新构建。
+
+构建时会自动生成带 `window.__BAZI_API_BASE__` 的 `config.js`，无需手改前端文件。
+
+**备选**：不配变量时，Pages 仍使用仓库里的默认 `config.js`（空基址，仅适合本地同源调试）；也可本地改 `frontend/config.js` 后 push（不推荐，易与变量注入混淆）。
+
+后端已开 **`/api/*` CORS**（`flask-cors`），允许从 `github.io` 调用。
 
 ---
 
