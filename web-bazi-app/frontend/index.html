@@ -664,6 +664,34 @@
         if (!path.startsWith('/')) path = '/' + path;
         return apiBase() + path;
       }
+      /** GitHub Pages 项目站：用站点根下绝对路径，避免 <base> 与相对路径不一致导致 locations.json 404 */
+      function locationsJsonUrl() {
+        var h = location.hostname;
+        if (h.indexOf('github.io') !== -1) {
+          var parts = location.pathname.split('/').filter(function (s) {
+            return s && s.indexOf('.') === -1;
+          });
+          if (parts.length >= 1) return '/' + parts[0] + '/locations.json';
+        }
+        return 'locations.json';
+      }
+      var STATIC_BAZI_HINT =
+        '当前为 GitHub Pages 静态页，无法直接排盘。请在仓库 Settings → Actions → Variables 设置 BAZI_API_BASE 为你的 Flask API（如 Render），或在本地运行 python app.py。';
+      function parseApiJsonBody(res, rawText) {
+        var t = (rawText || '').trim();
+        if (t.charAt(0) === '<' || (t.charAt(0) !== '{' && t.charAt(0) !== '[')) {
+          var e = new Error(STATIC_BAZI_HINT);
+          e._baziStatic = true;
+          throw e;
+        }
+        try {
+          return JSON.parse(rawText);
+        } catch (err) {
+          var e2 = new Error(STATIC_BAZI_HINT);
+          e2._baziStatic = true;
+          throw e2;
+        }
+      }
 
       // ===== 主题 =====
       (function() {
@@ -792,19 +820,37 @@
       async function loadLocations() {
         try {
           var data = null;
-          var res = await fetch(apiUrl('/api/locations'));
-          var ct = (res.headers.get('content-type') || '').toLowerCase();
-          if (res.ok && ct.indexOf('application/json') !== -1) {
-            try {
-              data = await res.json();
-            } catch (ignore) {
-              data = null;
+          var onGh = location.hostname.indexOf('github.io') !== -1;
+          var staticU = locationsJsonUrl();
+          if (onGh) {
+            var rs = await fetch(staticU, { cache: 'no-store' });
+            if (rs.ok) {
+              try {
+                data = await rs.json();
+              } catch (ignore) {
+                data = null;
+              }
             }
           }
           if (!data || !Array.isArray(data.provinces)) {
-            var r2 = await fetch('locations.json');
-            if (!r2.ok) throw new Error('无法加载地点数据');
-            data = await r2.json();
+            var res = await fetch(apiUrl('/api/locations'));
+            var ct = (res.headers.get('content-type') || '').toLowerCase();
+            if (res.ok && ct.indexOf('application/json') !== -1) {
+              try {
+                data = await res.json();
+              } catch (ignore) {
+                data = null;
+              }
+            }
+          }
+          if (!data || !Array.isArray(data.provinces)) {
+            if (!onGh) {
+              var r2 = await fetch(staticU, { cache: 'no-store' });
+              if (!r2.ok) throw new Error('无法加载地点数据');
+              data = await r2.json();
+            } else {
+              throw new Error('无法加载 locations.json，请确认已部署该文件（见仓库 web-bazi-app/frontend/locations.json）');
+            }
           }
           locationData = data;
           provinceInput.innerHTML = locationData.provinces.map(p => '<option value="' + p.code + '">' + p.name + '</option>').join('');
@@ -1143,10 +1189,14 @@
             else { payload.country = countryInput.value; payload.city = overseasCityInput.value; }
             try {
               var res = await fetch(apiUrl('/api/bazi'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-              var d = await res.json();
-              if (!res.ok) { message.textContent = d.error; message.className = 'message error'; return; }
+              var raw = await res.text();
+              var d = parseApiJsonBody(res, raw);
+              if (!res.ok) { message.textContent = d.error || '排盘失败'; message.className = 'message error'; return; }
               renderDatetimeResult(d);
-            } catch (err) { message.textContent = '请求失败: ' + err.message; message.className = 'message error'; }
+            } catch (err) {
+              message.textContent = err._baziStatic ? err.message : '请求失败: ' + err.message;
+              message.className = 'message error';
+            }
           });
         });
       }
@@ -1192,11 +1242,16 @@
         showLoading();
         try {
           var res = await fetch(apiUrl('/api/bazi'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-          var data = await res.json();
-          if (!res.ok) { message.textContent = data.error; message.className = 'message error'; resultWrap.innerHTML = ''; return; }
+          var raw = await res.text();
+          var data = parseApiJsonBody(res, raw);
+          if (!res.ok) { message.textContent = data.error || '排盘失败'; message.className = 'message error'; resultWrap.innerHTML = ''; return; }
           if (mode === 'pillars') renderPillarsResult(data);
           else renderDatetimeResult(data);
-        } catch (err) { message.textContent = '请求失败: ' + err.message; message.className = 'message error'; resultWrap.innerHTML = ''; }
+        } catch (err) {
+          message.textContent = err._baziStatic ? err.message : '请求失败: ' + err.message;
+          message.className = 'message error';
+          resultWrap.innerHTML = '';
+        }
       });
 
       $('clearBtn').addEventListener('click', function() {
