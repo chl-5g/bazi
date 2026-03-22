@@ -17,12 +17,19 @@
         --red: #d81b1b;
         --wood: #1f9d55;
         --fire: #d81b1b;
-        --metal: #b08d56;
+        --metal: #c8a030;
         --water: #1e63d6;
         --earth: #8b5a2b;
         --head-bg: linear-gradient(135deg, #eae8e3 0%, #e2e0da 100%);
         --head-title-color: #1a1a2e;
         --btn-primary-text: #fff;
+        --pillar-bg: #fdf8f0;
+        --pillar-border: #e2d9c8;
+        --table-stripe: rgba(0, 0, 0, 0.04);
+        --luck-bg: #f0f4fb;
+        --luck-border: #c8d4e8;
+        --ai-bg: #f4f2f8;
+        --ai-border: #d4cfe0;
       }
       [data-theme="dark"] {
         --bg: #08080e;
@@ -42,6 +49,13 @@
         --head-bg: linear-gradient(135deg, #12121e 0%, #0a0a14 100%);
         --head-title-color: #c0c0d0;
         --btn-primary-text: #08080e;
+        --pillar-bg: #161218;
+        --pillar-border: #302838;
+        --table-stripe: rgba(255, 255, 255, 0.05);
+        --luck-bg: #0c1220;
+        --luck-border: #1a2840;
+        --ai-bg: #12101c;
+        --ai-border: #2a2540;
       }
       * { box-sizing: border-box; margin: 0; padding: 0; }
       body {
@@ -149,14 +163,14 @@
         overflow-y: auto;
       }
       .result-head {
-        padding: 14px 20px;
+        padding: 10px 16px;
         background: var(--head-bg);
         border: 1px solid var(--border);
         border-radius: 8px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 12px;
+        margin-bottom: 8px;
       }
       .result-head .title {
         color: var(--head-title-color);
@@ -185,14 +199,15 @@
         width: 100%;
         border-collapse: separate;
         border-spacing: 0;
-        border: 2px solid var(--gold);
+        border: none;
         border-radius: 8px;
         overflow: hidden;
+        table-layout: fixed;
       }
       .pillar-table th,
       .pillar-table td {
         border: 1px solid var(--border);
-        padding: 8px 12px;
+        padding: 5px 8px;
         text-align: center;
         font-size: 20px;
         font-weight: 600;
@@ -211,7 +226,41 @@
       .pillar-table .big-char {
         font-size: 32px;
         font-weight: 700;
-        padding: 10px 12px;
+        padding: 4px 6px;
+      }
+      .pillar-table .gan-shen {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--muted);
+        margin-bottom: 1px;
+      }
+      .pillar-table .zhi-cell {
+        padding: 4px 6px;
+        vertical-align: top;
+        text-align: center;
+      }
+      .pillar-table .cang-inline {
+        margin-top: 2px;
+        font-size: 14px;
+        font-weight: 400;
+        line-height: 1.3;
+      }
+      .pillar-table .cang-item {
+        display: block;
+        white-space: nowrap;
+      }
+      .pillar-table .cang-shen {
+        font-size: 13px;
+        color: var(--muted);
+        margin-left: 1px;
+      }
+      /* 四柱表：tbody 隔行浅底（左侧「天干/地支」列保持统一底） */
+      .pillar-table tbody tr:nth-child(even) td {
+        background: var(--table-stripe);
+      }
+      .pillar-table tbody tr:nth-child(even) td.stub {
+        background: var(--panel-alt);
       }
       .c-wood { color: var(--wood) !important; }
       .c-fire { color: var(--fire) !important; }
@@ -219,25 +268,69 @@
       .c-water { color: var(--water) !important; }
       .c-earth { color: var(--earth) !important; }
 
+      /* 与「排盘结果」标题同字号、字重 */
       .section-title {
-        font-size: 16px;
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--head-title-color);
+        margin-bottom: 2px;
+      }
+      /* 点流年/小运后：「四柱」二字后的小字年龄 */
+      .section-title .pillar-title-age {
+        font-size: 14px;
         font-weight: 600;
-        color: var(--gold);
-        margin-bottom: 8px;
+        color: var(--muted);
+        margin-left: 10px;
+        vertical-align: middle;
       }
       .result-block {
-        background: var(--panel);
-        border: 1px solid var(--border);
         border-radius: 8px;
-        padding: 12px;
-        margin-bottom: 12px;
+        padding: 6px 8px;
+        margin-bottom: 6px;
+      }
+      .result-block.block-pillar {
+        background: var(--pillar-bg);
+        border: 1px solid var(--pillar-border);
+      }
+      .result-block.block-luck {
+        background: var(--luck-bg);
+        border: 1px solid var(--luck-border);
+      }
+      .result-block.block-ai {
+        background: var(--ai-bg);
+        border: 1px solid var(--ai-border);
+      }
+      .ai-fortune-hint {
+        font-size: 13px;
+        color: var(--muted);
+        margin: 4px 0 10px;
+        line-height: 1.5;
+      }
+      .ai-fortune-output {
+        margin-top: 10px;
+        font-size: 14px;
+        color: var(--text);
+        line-height: 1.6;
+      }
+      .btn-ai {
+        background: var(--gold);
+        color: var(--btn-primary-text);
+        border: none;
+        border-radius: 6px;
+        padding: 9px 18px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .btn-ai:hover {
+        background: var(--gold-dark);
       }
 
       /* 大运流年综合表格 */
       .luck-table {
         border-collapse: separate;
         border-spacing: 0;
-        border: 2px solid var(--gold);
+        border: none;
         border-radius: 8px;
         overflow: hidden;
         table-layout: fixed;
@@ -245,7 +338,7 @@
       .luck-table th,
       .luck-table td {
         border: 1px solid var(--border);
-        padding: 5px 7px;
+        padding: 3px 5px;
         text-align: center;
         font-size: 14px;
         color: var(--text);
@@ -260,16 +353,38 @@
         background: var(--panel-alt);
         color: var(--muted);
         font-size: 14px;
-        min-width: 72px;
       }
       .luck-table .dy-header {
-        background: var(--panel-alt);
+        background: var(--luck-bg);
         font-weight: 700;
-        font-size: 16px;
-      }
-      .luck-table .dy-sub {
-        background: var(--panel-alt);
         font-size: 14px;
+        padding: 3px 5px;
+        line-height: 1.35;
+        height: auto;
+        border-color: var(--luck-border);
+      }
+      /* 大运表头：2030-2039 / 壬辰（仅干支，不缀「大运」） */
+      .luck-table .dy-year-line {
+        display: block;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--muted);
+        line-height: 1.3;
+        margin-bottom: 6px;
+      }
+      .luck-table .dy-bazi-line {
+        display: block;
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 1.25;
+      }
+      /* 大运流年表：数据行隔行浅底 */
+      .luck-table tbody tr:nth-child(even) td {
+        background: var(--table-stripe);
+      }
+      .luck-table .dy-age {
+        font-size: 12px;
+        font-weight: 400;
         color: var(--muted);
       }
       .luck-table .ln-cell {
@@ -284,6 +399,14 @@
         font-weight: 600;
         font-size: 14px;
       }
+      .luck-table .ln-cell { cursor: pointer; transition: background 0.15s; }
+      .luck-table tbody tr td.ln-cell:hover { background: var(--panel); }
+      .luck-table tbody tr td.ln-cell.active { background: var(--gold); }
+      .luck-table .ln-cell.active .ln-year,
+      .luck-table .ln-cell.active .ln-gz span { color: var(--btn-primary-text) !important; }
+      .luck-table tbody tr td.xy-cell:hover { background: var(--panel); }
+      .luck-table tbody tr td.xy-cell.active { background: var(--gold); color: var(--btn-primary-text) !important; }
+      .luck-table .xy-cell.active span { color: var(--btn-primary-text) !important; }
 
       .candidate-grid {
         display: grid;
@@ -421,7 +544,7 @@
           <div id="solarBlock">
             <div class="form-group">
               <label>出生日期时间</label>
-              <input id="datetime" type="datetime-local" />
+              <input id="datetime" type="datetime-local" min="1900-01-01T00:00" max="2100-12-31T23:59" />
             </div>
           </div>
           <div id="lunarBlock" style="display:none">
@@ -486,11 +609,13 @@
               </div>
             </div>
           </div>
-          <div id="timeModeWrap" class="slider-toggle active" style="margin:6px 0">
-            <span id="timeModeLabel">真太阳时</span>
-            <div class="switch"></div>
-          </div>
           <input type="hidden" id="timeMode" value="true_solar" />
+          <div style="display:flex;justify-content:flex-end;margin:6px 0">
+            <div id="timeModeWrap" class="slider-toggle active">
+              <span id="timeModeLabel">真太阳时</span>
+              <div class="switch"></div>
+            </div>
+          </div>
           <div class="btn-row">
             <button id="submitBtn" class="btn-primary">开始排盘</button>
             <button id="clearBtn" class="btn-secondary">清空</button>
@@ -512,8 +637,19 @@
       </div>
     </div>
 
+    <script src="config.js"></script>
+    <script src="ai-fortune/ai-fortune.js"></script>
     <script>
       const $ = (id) => document.getElementById(id);
+      function apiBase() {
+        if (typeof window !== 'undefined' && window.__BAZI_API_BASE__ != null && String(window.__BAZI_API_BASE__).trim() !== '')
+          return String(window.__BAZI_API_BASE__).replace(/\/$/, '');
+        return '';
+      }
+      function apiUrl(path) {
+        if (!path.startsWith('/')) path = '/' + path;
+        return apiBase() + path;
+      }
 
       // ===== 主题 =====
       (function() {
@@ -618,7 +754,7 @@
         solarBlock.style.display = v === 'solar' ? 'block' : 'none';
         lunarBlock.style.display = v === 'lunar' ? 'block' : 'none';
         pillarsBlock.style.display = v === 'pillars' ? 'block' : 'none';
-        timeModeWrap.style.display = v === 'pillars' ? 'none' : 'flex';
+        timeModeWrap.parentElement.style.display = v === 'pillars' ? 'none' : 'flex';
       }
       calendarType.addEventListener('change', syncCalendarBlocks);
 
@@ -641,7 +777,7 @@
 
       async function loadLocations() {
         try {
-          const res = await fetch('/api/locations');
+          const res = await fetch(apiUrl('/api/locations'));
           locationData = await res.json();
           provinceInput.innerHTML = locationData.provinces.map(p => '<option value="' + p.code + '">' + p.name + '</option>').join('');
           syncDomesticCities();
@@ -686,6 +822,29 @@
         return out;
       }
 
+      // ===== 藏干 & 十神 =====
+      var CANG_GAN = {
+        '子':['癸'],'丑':['己','辛','癸'],'寅':['甲','丙','戊'],'卯':['乙'],
+        '辰':['戊','乙','癸'],'巳':['丙','庚','戊'],'午':['丁','己'],'未':['己','丁','乙'],
+        '申':['庚','壬','戊'],'酉':['辛'],'戌':['戊','辛','丁'],'亥':['壬','甲']
+      };
+      var GAN_EL = {'甲':'木','乙':'木','丙':'火','丁':'火','戊':'土','己':'土','庚':'金','辛':'金','壬':'水','癸':'水'};
+      var GAN_YIN = {'甲':1,'乙':0,'丙':1,'丁':0,'戊':1,'己':0,'庚':1,'辛':0,'壬':1,'癸':0};
+      var SHENG = {'木':'火','火':'土','土':'金','金':'水','水':'木'};
+      var KE   = {'木':'土','土':'水','水':'火','火':'金','金':'木'};
+      function shiShen(me, other) {
+        if (!me || !other) return '';
+        var meEl = GAN_EL[me], otEl = GAN_EL[other];
+        if (!meEl || !otEl) return '';
+        var same = GAN_YIN[me] === GAN_YIN[other];
+        if (meEl === otEl) return same ? '比肩' : '劫财';
+        if (SHENG[meEl] === otEl) return same ? '食神' : '伤官';
+        if (SHENG[otEl] === meEl) return same ? '偏印' : '正印';
+        if (KE[meEl] === otEl) return same ? '偏财' : '正财';
+        if (KE[otEl] === meEl) return same ? '七杀' : '正官';
+        return '';
+      }
+
       // ===== 用户信息显示 =====
       function updateHeadUser() {
         var name = userNameInput.value.trim();
@@ -693,6 +852,7 @@
         var parts = [];
         if (name) parts.push(name);
         parts.push(genderText);
+        parts.push(getLocationText());
         $('headUser').textContent = parts.join('　');
       }
 
@@ -702,6 +862,64 @@
       }
 
       // ===== 渲染 =====
+      function buildPillarTable(cols, extraCols) {
+        var all = cols.concat(extraCols || []);
+        var hasExtra = extraCols && extraCols.length > 0;
+        var dayGan = cols[2] && cols[2].v ? cols[2].v[0] : '';
+        var stubPct = 10;
+        var colPct = ((100 - stubPct) / all.length).toFixed(2);
+        var pt = '<table class="pillar-table"><colgroup><col style="width:' + stubPct + '%"/>';
+        all.forEach(function() { pt += '<col style="width:' + colPct + '%"/>'; });
+        pt += '</colgroup><thead><tr><th class="stub"></th>';
+        all.forEach(function(c) {
+          pt += '<th>' + c.t + '</th>';
+        });
+        pt += '</tr></thead><tbody>';
+        function td(cls, html) {
+          return '<td class="' + cls + '">' + html + '</td>';
+        }
+        // 天干（含十神小字）
+        pt += '<tr><td class="stub">天干</td>';
+        all.forEach(function(c, i) {
+          var ch = c.v ? c.v[0] : '-';
+          var label = '';
+          if (i === 2 && !hasExtra) label = '日主';
+          else if (c.year) label = c.year;
+          else label = shiShen(dayGan, ch);
+          pt += td('big-char ' + cc(ch), '<span class="gan-shen">' + label + '</span>' + ch);
+        });
+        pt += '</tr>';
+        // 地支（含藏干）
+        pt += '<tr><td class="stub">地支</td>';
+        all.forEach(function(c) {
+          var ch = c.v ? c.v[1] : '-';
+          var zhi = c.v ? c.v[1] : '';
+          var cg = CANG_GAN[zhi] || [];
+          var cangHtml = cg.map(function(g) {
+            var ss = shiShen(dayGan, g);
+            return '<span class="cang-item">' + cz(g) + '<span class="cang-shen">' + ss + '</span></span>';
+          }).join('');
+          var html = '<span class="' + cc(ch) + '" style="font-size:32px;font-weight:700">' + ch + '</span>';
+          if (cangHtml) html += '<div class="cang-inline">' + cangHtml + '</div>';
+          pt += td('zhi-cell', html);
+        });
+        pt += '</tr>';
+        pt += '</tbody></table>';
+        return pt;
+      }
+
+      function getLocationText() {
+        if (locationTypeInput.value === 'domestic') {
+          var pOpt = provinceInput.options[provinceInput.selectedIndex];
+          var cOpt = domesticCityInput.options[domesticCityInput.selectedIndex];
+          return (pOpt ? pOpt.text : '') + ' ' + (cOpt ? cOpt.text : '');
+        } else {
+          var ctOpt = countryInput.options[countryInput.selectedIndex];
+          var ocOpt = overseasCityInput.options[overseasCityInput.selectedIndex];
+          return (ctOpt ? ctOpt.text : '') + ' ' + (ocOpt ? ocOpt.text : '');
+        }
+      }
+
       function renderDatetimeResult(data) {
         updateHeadUser();
         var metaHtml = '阳历：' + data.solar_datetime + '<br/>阴历：' + data.lunar_date;
@@ -709,7 +927,7 @@
           metaHtml += '<br/>真太阳时：' + data.calc_datetime;
         }
         headMeta.innerHTML = metaHtml;
-        var cols = [
+        var baseCols = [
           { t: '年柱', v: data.year_pillar },
           { t: '月柱', v: data.month_pillar },
           { t: '日柱', v: data.day_pillar },
@@ -718,16 +936,24 @@
         var yun = data.yun || {};
         var daYun = yun.da_yun || [];
         var xiaoYun = yun.xiao_yun || [];
+        var birthYearForAge = parseInt(String(data.calc_datetime || data.solar_datetime).slice(0, 4), 10);
+        function ageAtLiuYear(y) {
+          var yy = parseInt(y, 10);
+          if (isNaN(yy) || isNaN(birthYearForAge)) return '';
+          return String(yy - birthYearForAge);
+        }
+        /* n=周岁（流年年−出生年），展示：周岁n岁 虚岁n+1岁 */
+        function pillarTitleHtml(zhouSuiStr) {
+          if (zhouSuiStr == null || zhouSuiStr === '') return '<div class="section-title">四柱</div>';
+          var n = parseInt(zhouSuiStr, 10);
+          if (isNaN(n)) return '<div class="section-title">四柱</div>';
+          var xu = n + 1;
+          var label = '周岁' + n + '岁 虚岁' + xu + '岁';
+          return '<div class="section-title">四柱<span class="pillar-title-age">' + label + '</span></div>';
+        }
 
-        // 四柱表格
-        var pt = '<table class="pillar-table"><thead><tr><th class="stub"></th>';
-        cols.forEach(function(c) { pt += '<th>' + c.t + '</th>'; });
-        pt += '</tr></thead><tbody>';
-        pt += '<tr><td class="stub">天干</td>';
-        cols.forEach(function(c) { var ch = c.v ? c.v[0] : '-'; pt += '<td class="big-char ' + cc(ch) + '">' + ch + '</td>'; });
-        pt += '</tr><tr><td class="stub">地支</td>';
-        cols.forEach(function(c) { var ch = c.v ? c.v[1] : '-'; pt += '<td class="big-char ' + cc(ch) + '">' + ch + '</td>'; });
-        pt += '</tr></tbody></table>';
+        // 流年干支
+        function yearGZ(y) { return JIA_ZI[((y - 4) % 60 + 60) % 60]; }
 
         // 大运流年表格
         var lt = '';
@@ -736,35 +962,55 @@
           daYun.forEach(function(d) { if (d.liu_nian && d.liu_nian.length > maxLn) maxLn = d.liu_nian.length; });
 
           var visibleCols = 8;
-          var totalUnits = 1 + daYun.length;
-          var tblPct = (totalUnits / (1 + visibleCols) * 100).toFixed(2);
+          var totalUnits = 2 + daYun.length;
+          var tblPct = (totalUnits / (2 + visibleCols) * 100).toFixed(2);
           var stubPct = (1 / totalUnits * 100).toFixed(2);
           var colPct = (1 / totalUnits * 100).toFixed(2);
-          lt += '<table class="luck-table" style="width:' + tblPct + '%"><colgroup><col style="width:' + stubPct + '%"/>';
+          lt += '<table class="luck-table" style="width:' + tblPct + '%"><colgroup>';
+          lt += '<col style="width:' + stubPct + '%"/>';
+          lt += '<col style="width:' + colPct + '%"/>';
           daYun.forEach(function() { lt += '<col style="width:' + colPct + '%"/>'; });
           lt += '</colgroup><thead>';
-          lt += '<tr><th class="stub">大运</th>';
-          daYun.forEach(function(d) { lt += '<th class="dy-header">' + cz(d.gan_zhi) + '</th>'; });
-          lt += '</tr>';
-          lt += '<tr><th class="stub">年份</th>';
-          daYun.forEach(function(d) { lt += '<th class="dy-sub">' + d.start_year + '-' + d.end_year + '</th>'; });
-          lt += '</tr>';
-          lt += '<tr><th class="stub">小运</th>';
-          daYun.forEach(function(d) { lt += '<th class="dy-sub">' + d.start_age + '-' + d.end_age + '岁</th>'; });
+          lt += '<tr><th class="stub">大运</th><th class="stub">小运</th>';
+          daYun.forEach(function(d) {
+            lt += '<th class="dy-header">';
+            lt += '<span class="dy-year-line">' + d.start_year + '-' + d.end_year + '</span>';
+            lt += '<span class="dy-bazi-line">' + cz(d.gan_zhi) + '</span>';
+            lt += '</th>';
+          });
           lt += '</tr></thead><tbody>';
 
           for (var r = 0; r < maxLn; r++) {
             lt += '<tr>';
+            if (r === 0) {
+              lt += '<td class="stub" rowspan="' + maxLn + '" style="vertical-align:middle;font-weight:600">流年</td>';
+            }
             if (r < xiaoYun.length) {
               var xy = xiaoYun[r];
-              lt += '<td class="stub">' + cz(xy.gan_zhi) + ' ' + xy.age + '岁</td>';
+              var xyLn = yearGZ(xy.year);
+              lt += '<td class="xy-cell" data-xy="' + xy.gan_zhi + '" data-ln="' + xyLn + '" data-year="' + xy.year + '" data-age="' + xy.age + '" style="cursor:pointer">';
+              lt += '<span class="ln-year">' + xy.age + '岁</span> <span class="ln-gz">' + cz(xy.gan_zhi) + '</span>';
+              lt += '</td>';
             } else {
-              lt += '<td class="stub"></td>';
+              lt += '<td></td>';
             }
             daYun.forEach(function(d) {
               var lns = d.liu_nian || [];
               if (r < lns.length) {
-                lt += '<td class="ln-cell"><span class="ln-year">' + lns[r].year + '</span> <span class="ln-gz">' + cz(lns[r].gan_zhi) + '</span></td>';
+                lt +=
+                  '<td class="ln-cell" data-dy="' +
+                  d.gan_zhi +
+                  '" data-ln="' +
+                  lns[r].gan_zhi +
+                  '" data-year="' +
+                  lns[r].year +
+                  '" data-age="' +
+                  ageAtLiuYear(lns[r].year) +
+                  '"><span class="ln-year">' +
+                  lns[r].year +
+                  '</span> <span class="ln-gz">' +
+                  cz(lns[r].gan_zhi) +
+                  '</span></td>';
               } else {
                 lt += '<td></td>';
               }
@@ -774,18 +1020,73 @@
           lt += '</tbody></table>';
         }
 
-        var h = '<div class="result-block">';
-        h += '<div class="section-title">四柱</div>';
-        h += pt;
+        var h = '<div class="result-block block-pillar" id="pillarBlock">';
+        h += pillarTitleHtml('');
+        h += buildPillarTable(baseCols);
         h += '</div>';
         if (lt) {
-          h += '<div class="result-block">';
-          h += '<div class="section-title">大运 / 流年</div>';
+          h += '<div class="result-block block-luck">';
+          var qyText = '';
+          if (yun.start_year !== undefined) {
+            var parts = [];
+            if (yun.start_year > 0) parts.push(yun.start_year + '年');
+            if (yun.start_month > 0) parts.push(yun.start_month + '月');
+            if (yun.start_day > 0) parts.push(yun.start_day + '日');
+            qyText = '出生后' + (parts.length ? parts.join('') : '0日') + '起运　';
+          }
+          h += '<div class="section-title">大运 / 流年 <span style="font-size:12px;font-weight:400;color:var(--muted)">' + qyText + '点击流年或小运查看</span></div>';
           h += '<div class="luck-wrap">' + lt + '</div>';
           h += '</div>';
         }
 
+        h +=
+          '<div class="result-block block-ai" id="aiFortuneBlock">' +
+          '<div class="section-title">AI算命</div>' +
+          '<p class="ai-fortune-hint">程序化解读、规则引擎或模型接口可接在下方；代码目录：项目内 <code>ai-divination/</code>（算法/服务）与 <code>frontend/ai-fortune/</code>（页面脚本）。</p>' +
+          '<button type="button" id="aiFortuneBtn" class="btn-ai">AI算命</button>' +
+          '<div id="aiFortuneOutput" class="ai-fortune-output" style="display:none"></div>' +
+          '</div>';
+
         resultWrap.innerHTML = h;
+        window.__lastBaziResult = data;
+        if (window.AiFortune && typeof window.AiFortune.bind === 'function') {
+          window.AiFortune.bind('aiFortuneBtn', 'aiFortuneOutput', function () {
+            return window.__lastBaziResult;
+          });
+        }
+
+        function clearLuckActive() {
+          resultWrap.querySelectorAll('.ln-cell.active, .xy-cell.active').forEach(function(a) { a.classList.remove('active'); });
+        }
+
+        resultWrap.querySelectorAll('.ln-cell[data-ln]').forEach(function(el) {
+          el.addEventListener('click', function() {
+            clearLuckActive();
+            this.classList.add('active');
+            var lnAge = this.getAttribute('data-age');
+            var extra = [
+              { t: '大运', v: this.getAttribute('data-dy') },
+              { t: this.getAttribute('data-year') + '<br/>流年', v: this.getAttribute('data-ln') },
+            ];
+            $('pillarBlock').innerHTML = pillarTitleHtml(lnAge) + buildPillarTable(baseCols, extra);
+          });
+        });
+
+        resultWrap.querySelectorAll('.xy-cell[data-xy]').forEach(function(el) {
+          el.addEventListener('click', function() {
+            clearLuckActive();
+            this.classList.add('active');
+            var age = this.getAttribute('data-age');
+            var lnGZ = this.getAttribute('data-ln');
+            var lnYear = this.getAttribute('data-year');
+            var lnAge = ageAtLiuYear(lnYear);
+            var extra = [
+              { t: age + '岁<br/>小运', v: this.getAttribute('data-xy') },
+              { t: lnYear + '<br/>流年', v: lnGZ },
+            ];
+            $('pillarBlock').innerHTML = pillarTitleHtml(lnAge) + buildPillarTable(baseCols, extra);
+          });
+        });
       }
 
       function renderPillarsResult(data) {
@@ -811,7 +1112,7 @@
             if (isDomestic) { payload.province = provinceInput.value; payload.city = domesticCityInput.value; }
             else { payload.country = countryInput.value; payload.city = overseasCityInput.value; }
             try {
-              var res = await fetch('/api/bazi', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+              var res = await fetch(apiUrl('/api/bazi'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
               var d = await res.json();
               if (!res.ok) { message.textContent = d.error; message.className = 'message error'; return; }
               renderDatetimeResult(d);
@@ -836,7 +1137,13 @@
         if (mode === 'lunar') {
           var ly = $('lunarYear').value;
           if (!ly) { message.textContent = '请输入农历年份'; message.className = 'message error'; return; }
-          payload = Object.assign({ mode: 'lunar', lunarYear: parseInt(ly), lunarMonth: parseInt($('lunarMonth').value),
+          var lunarYearNum = parseInt(ly, 10);
+          if (isNaN(lunarYearNum) || lunarYearNum < 1900 || lunarYearNum > 2100) {
+            message.textContent = '请输入1900-2100之间的年份';
+            message.className = 'message error';
+            return;
+          }
+          payload = Object.assign({ mode: 'lunar', lunarYear: lunarYearNum, lunarMonth: parseInt($('lunarMonth').value),
             lunarDay: parseInt($('lunarDay').value), hour: parseInt($('lunarHour').value),
             minute: parseInt($('lunarMinute').value), isLeapMonth: $('lunarLeap').checked }, buildLocationPayload());
         } else if (mode === 'pillars') {
@@ -844,11 +1151,17 @@
         } else {
           var dt = datetimeInput.value;
           if (!dt) { message.textContent = '请选择出生日期时间'; message.className = 'message error'; return; }
+          var solarYear = parseInt(dt.slice(0, 4), 10);
+          if (isNaN(solarYear) || solarYear < 1900 || solarYear > 2100) {
+            message.textContent = '请输入1900-2100之间的年份';
+            message.className = 'message error';
+            return;
+          }
           payload = Object.assign({ mode: 'datetime', datetime: dt }, buildLocationPayload());
         }
         showLoading();
         try {
-          var res = await fetch('/api/bazi', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+          var res = await fetch(apiUrl('/api/bazi'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
           var data = await res.json();
           if (!res.ok) { message.textContent = data.error; message.className = 'message error'; resultWrap.innerHTML = ''; return; }
           if (mode === 'pillars') renderPillarsResult(data);
@@ -860,7 +1173,7 @@
         userNameInput.value = '';
         calendarType.value = 'solar'; syncCalendarBlocks();
         datetimeInput.value = '';
-        genderInput.value = '1'; timeModeInput.value = 'true_solar'; timeModeWrap.classList.add('active'); timeModeWrap.style.display = 'flex'; timeModeLabel.textContent = '真太阳时'; locationTypeInput.value = 'domestic';
+        genderInput.value = '1'; timeModeInput.value = 'true_solar'; timeModeWrap.classList.add('active'); timeModeWrap.parentElement.style.display = 'flex'; timeModeLabel.textContent = '真太阳时'; locationTypeInput.value = 'domestic';
         syncLocationBlocks();
         yearP.selectedIndex = 0; dayP.selectedIndex = 0; syncMonthPillar(); syncTimePillar();
         message.textContent = ''; resultWrap.innerHTML = '';

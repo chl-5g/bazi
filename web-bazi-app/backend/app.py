@@ -5,11 +5,18 @@ from typing import Optional
 from flask import Flask, jsonify, request, send_from_directory
 from lunar_python import Lunar, Solar
 
+try:
+    from flask_cors import CORS
+except ImportError:
+    CORS = None  # type: ignore
+
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 FRONTEND_DIR = BASE_DIR / "frontend"
 
 app = Flask(__name__, static_folder=str(FRONTEND_DIR))
+if CORS is not None:
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 PROVINCES = {
     "beijing": {
@@ -480,6 +487,16 @@ def home():
     return send_from_directory(FRONTEND_DIR, "index.html")
 
 
+@app.route("/config.js")
+def spa_config():
+    return send_from_directory(FRONTEND_DIR, "config.js")
+
+
+@app.route("/ai-fortune/<path:filename>")
+def ai_fortune_static(filename: str):
+    return send_from_directory(FRONTEND_DIR / "ai-fortune", filename)
+
+
 @app.route("/api/locations")
 def get_locations():
     provinces = []
@@ -537,6 +554,12 @@ def get_bazi():
 
             if not input_datetime:
                 return jsonify({"error": "请输入出生日期时间"}), 400
+            try:
+                dt_solar = datetime.strptime(input_datetime, "%Y-%m-%dT%H:%M")
+            except ValueError:
+                return jsonify({"error": "请输入出生日期时间"}), 400
+            if not (1900 <= dt_solar.year <= 2100):
+                return jsonify({"error": "请输入1900-2100之间的年份"}), 400
             result = build_bazi_result(
                 input_datetime,
                 time_mode=time_mode,
@@ -612,7 +635,7 @@ def get_bazi():
         else:
             return jsonify({"error": "无效的模式"}), 400
     except ValueError:
-        return jsonify({"error": "输入格式错误"}), 400
+        return jsonify({"error": "请输入1900-2100之间的年份"}), 400
     except Exception as exc:
         return jsonify({"error": f"排盘失败: {exc}"}), 500
 

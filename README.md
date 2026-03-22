@@ -1,155 +1,119 @@
 # Bazi 八字排盘系统
 
-一套完整的八字（四柱）排盘工具集，包含 Web 应用和 MCP Server。
+一套八字（四柱）排盘工具：**Web 应用**（Flask + 单页前端）、**GitHub Pages 在线界面**，以及 **MCP Server** 扩展。
+
+在线站点（GitHub Pages，静态界面）：**<https://chl-5g.github.io/bazi/>**  
+（仓库归属：`chl-5g/bazi`；若你记成 chi-5g，请以此 GitHub 用户名为准。）
+
+> Pages 上仅为**静态页面**，排盘接口需自行部署后端，并在 `config.js` 里配置 `__BAZI_API_BASE__`（见下文「GitHub Pages」）。
+
+---
 
 ## 项目结构
 
 ```
 bazi/
-├── web-bazi-app/          # 八字排盘 Web 应用
-│   ├── backend/
-│   │   ├── app.py         # Flask 后端 API
-│   │   └── requirements.txt
-│   └── frontend/
-│       └── index.html     # 单页前端（HTML/CSS/JS）
-├── bazi-mcp/              # 八字 MCP Server（来自 cantian-ai）
-│   └── src/
-├── bazi-mcp-custom/       # 自定义八字 MCP Server
-│   └── src/
+├── web-bazi-app/
+│   ├── backend/           # Flask API（lunar_python）
+│   ├── frontend/          # index.html、config.js、ai-fortune/
+│   └── ai-divination/     # 程序化解读 / AI 逻辑占位（Python 包）
+├── .github/workflows/     # GitHub Actions：部署 Pages
+├── bazi-mcp/              # 八字 MCP Server（cantian-ai）
+├── bazi-mcp-custom/       # 自定义 MCP
 └── README.md
 ```
 
-## Web 应用
+---
 
-### 功能
+## Web 应用功能摘要
 
-- **三种排盘方式**：统一入口，下拉切换
-  - 按公历时间排盘：输入公历日期时间
-  - 按农历时间排盘：选择农历年月日 + 时辰，支持闰月
-  - 按四柱排盘：选择年柱/月柱/日柱/时柱干支，反查 1900–2100 年内匹配的公历时间，点击即可查看完整排盘
-- **用户信息**：支持输入姓名，结果页显示姓名与乾造/坤造
-- **真太阳时校正**：滑块开关，根据出生地经度和时区自动换算；四柱排盘模式下自动隐藏
-- **出生地选择**：国内按省份-城市、海外按国家-城市级联选择
-- **五行配色**：甲乙寅卯（木/绿）、丙丁巳午（火/红）、戊己辰戌丑未（土/棕）、庚辛申酉（金/金色）、壬癸亥子（水/蓝）
-- **大运流年表**：默认显示 8 列大运，横向滚动查看更多，上限 120 岁
-- **四柱下拉联动**：年柱/日柱提供 60 甲子选项，月柱按五虎遁、时柱按五鼠遁动态生成
-- **明暗主题切换**：日间/夜间模式，偏好自动保存
-- **响应式布局**：适配桌面、平板、手机
-- **加载指示器**：排盘计算中显示转圈动画
+- **三种排盘**：公历时间 / 农历（含闰月）/ 四柱反查公历（1900–2100）
+- **年份校验**：公历、农历提交与后端均限制 **1900–2100**
+- **用户与乾造/坤造**、**真太阳时**、**国内省市区 / 海外国家城市**、**五行配色**
+- **大运 / 流年表**（可横向滚动）、点击流年联动四柱展示 **周岁 / 虚岁**（标题「四柱」后小字）
+- **明暗主题**、**加载动画**、**四柱下拉**（五虎遁 / 五鼠遁）
+- **AI算命**：结果区下方占位区块与按钮；逻辑目录 `ai-divination/` + `frontend/ai-fortune/`
 
 ### 技术栈
 
-| 层       | 技术                                  |
-|---------|-------------------------------------|
-| 后端      | Python / Flask                      |
-| 历法计算    | [lunar_python](https://github.com/6tail/lunar-python) |
-| 前端      | 原生 HTML / CSS / JavaScript（单文件）     |
-| 持久化运行   | macOS launchd                       |
+| 层     | 技术 |
+|--------|------|
+| 后端   | Python / Flask、`flask-cors`（允许跨域调 API） |
+| 历法   | [lunar_python](https://github.com/6tail/lunar-python) |
+| 前端   | 单页 HTML/CSS/JS，`config.js` 配置 API 根地址 |
 
-### 快速启动
+### 本地启动
 
 ```bash
-# 1. 安装依赖
 cd web-bazi-app/backend
 pip3 install -r requirements.txt
-
-# 2. 启动
 python3 app.py
-
-# 3. 访问
-open http://localhost:8000
+# 浏览器打开 http://localhost:8000
 ```
 
-### API
+本地默认 `config.js` 中 `__BAZI_API_BASE__` 为空，请求走**同源** `/api/*`。
 
-#### POST /api/bazi
+---
 
-按公历时间排盘：
+## GitHub Pages（chl-5g.github.io）
 
-```json
-{
-  "mode": "datetime",
-  "datetime": "1998-07-31T14:10",
-  "gender": 1,
-  "timeMode": "true_solar",
-  "locationType": "domestic",
-  "province": "fujian",
-  "city": "fuzhou"
-}
-```
+推送 `master`/`main` 后，Workflow **Deploy GitHub Pages** 会把 `web-bazi-app/frontend/` 中的静态文件发布为：
 
-按农历时间排盘：
+**<https://chl-5g.github.io/bazi/>**
 
-```json
-{
-  "mode": "lunar",
-  "lunarYear": 1998,
-  "lunarMonth": 6,
-  "lunarDay": 9,
-  "hour": 14,
-  "minute": 10,
-  "isLeapMonth": false,
-  "gender": 1,
-  "timeMode": "true_solar",
-  "locationType": "domestic",
-  "province": "fujian",
-  "city": "fuzhou"
-}
-```
+### 你需要操作一次
 
-按四柱反查：
+1. GitHub 仓库 **Settings → Pages**  
+2. **Build and deployment → Source** 选 **GitHub Actions**（不要选 Branch 的 docs，除非你自己改流程）
 
-```json
-{
-  "mode": "pillars",
-  "yearPillar": "戊寅",
-  "monthPillar": "己未",
-  "dayPillar": "己卯",
-  "timePillar": "辛未"
-}
-```
+### 在线排盘要配 API
 
-#### GET /api/locations
+Pages 上没有 Python 后端。请：
 
-返回国内省市和海外国家城市列表（含经度和时区信息）。
+1. 把 Flask 部署到任意 **HTTPS** 主机（Render、Fly、自建等）  
+2. 修改仓库里 **`web-bazi-app/frontend/config.js`**（或仅在 gh-pages 构建产物里改），设置：
+
+   ```js
+   window.__BAZI_API_BASE__ = 'https://你的-api-域名';
+   ```
+
+3. 再推送，让 Actions 重新部署。
+
+后端已启用 **`/api/*` CORS**（`flask-cors`），允许浏览器从 `github.io` 调用。
+
+---
+
+## API 摘要
+
+- `POST /api/bazi` — `mode`: `datetime` | `lunar` | `pillars`（详见此前文档示例）
+- `GET /api/locations` — 省市 / 国家城市
+
+静态资源：`/config.js`、`/ai-fortune/ai-fortune.js`
+
+---
 
 ## MCP Server
 
-### bazi-mcp
-
-来自 cantian-ai 的八字 MCP Server，提供以下工具：
-
-- `getBaziDetail` — 根据公历/农历时间计算完整八字信息
-- `getSolarTimes` — 根据八字反查公历时间
-- `getChineseCalendar` — 获取黄历信息
-
-### bazi-mcp-custom
-
-基于 bazi-mcp 的自定义版本，可按需扩展功能。
+- **bazi-mcp**：`getBaziDetail`、`getSolarTimes`、`getChineseCalendar`
+- **bazi-mcp-custom**：可 fork 扩展
 
 ```bash
-cd bazi-mcp
-npm install
-npm start
+cd bazi-mcp && npm install && npm start
 ```
 
-## macOS 持久化运行（launchd）
+---
 
-Web 应用已配置为 macOS 后台服务，开机自动启动：
+## macOS 持久运行（launchd，可选）
 
 ```bash
-# 启动
 launchctl start com.caihaolun.bazi-web
-
-# 停止
 launchctl stop com.caihaolun.bazi-web
-
-# 查看状态
-launchctl list | grep bazi
 ```
 
-配置文件位于 `~/Library/LaunchAgents/com.caihaolun.bazi-web.plist`。
+配置示例：`~/Library/LaunchAgents/com.caihaolun.bazi-web.plist`。
+
+---
 
 ## License
 
-Private repository.
+Private repository unless otherwise noted.

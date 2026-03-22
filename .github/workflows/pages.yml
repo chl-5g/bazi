@@ -1,0 +1,46 @@
+# 静态前端 → GitHub Pages：https://chl-5g.github.io/bazi/
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches: [master, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - name: Build static site
+        run: |
+          mkdir -p _site/ai-fortune
+          cp web-bazi-app/frontend/index.html _site/
+          cp web-bazi-app/frontend/config.js _site/
+          cp web-bazi-app/frontend/ai-fortune/ai-fortune.js _site/ai-fortune/
+          touch _site/.nojekyll
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
