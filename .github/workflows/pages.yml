@@ -18,14 +18,17 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # 与 deploy 一致，才能读到「Environment: github-pages」里配置的 Variables；
+    # 仅写在 Repository variables 里时不影响（全 job 可见）。
+    environment:
+      name: github-pages
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
       - name: Build static site
         env:
-          # 在仓库 Settings → Secrets and variables → Actions → Variables 新建 BAZI_API_BASE
-          # 值为 Render 等上部署的 API 根，如 https://bazi-api-xxxx.onrender.com（不要末尾 /）
-          BAZI_API_BASE: ${{ vars.BAZI_API_BASE }}
+          # 优先 Repository / Environment 的 Variables；若误放在 Secrets 里也可读到
+          BAZI_API_BASE: ${{ vars.BAZI_API_BASE || secrets.BAZI_API_BASE }}
         run: |
           mkdir -p _site/ai-fortune
           cp web-bazi-app/frontend/index.html _site/
@@ -35,6 +38,7 @@ jobs:
           if [ -n "${BAZI_API_BASE}" ]; then
             printf 'window.__BAZI_API_BASE__ = "%s";\n' "${BAZI_API_BASE}" > _site/config.js
           else
+            echo "::warning::BAZI_API_BASE 为空：请在 Actions → Variables 的「Repository variables」或 Environment「github-pages」里添加 BAZI_API_BASE（不要用 Organization 里仅对部分 repo 生效且未勾选本仓库的配置）。"
             cp web-bazi-app/frontend/config.js _site/config.js
           fi
       - uses: actions/upload-pages-artifact@v3

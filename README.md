@@ -85,9 +85,12 @@ Pages 上没有 Python，需要公网 API。已帮你配好两条线：
 
 **B. 让 GitHub Pages 自动指向该 API**
 
-1. 打开仓库 **Settings → Secrets and variables → Actions → Variables**  
-2. 新建变量 **`BAZI_API_BASE`**，值填上一步的 URL（同上，无尾斜杠）。  
-3. **Actions** 里手动 **Re-run** 工作流 **Deploy GitHub Pages**，或随便改一个字再 push，让站点重新构建。
+1. 打开仓库 **Settings → Secrets and variables → Actions**。  
+2. 新建 **`BAZI_API_BASE`**（值：上一步的 API 根 URL，无尾斜杠），**必须放在下面两处之一**（不要只写在 Organization 变量里却未勾选本仓库）：  
+   - **Repository variables**（页面上方「Actions secrets and variables」里的 **Variables** 标签 → **Repository variables** → **New repository variable**），**或**  
+   - **Environment `github-pages`**：同一页点 **Environments** → **github-pages** → **Environment variables** → 添加 `BAZI_API_BASE`。  
+   - 若误建在 **Secrets** 里同名 `BAZI_API_BASE`，工作流也会尝试读取（API 根地址本身会进公开 `config.js`，用 Variables 即可）。  
+3. **Actions** 里 **Re-run** **Deploy GitHub Pages**，或 push 触发构建。
 
 构建时会自动生成带 `window.__BAZI_API_BASE__` 的 `config.js`，无需手改前端文件。
 
