@@ -1542,7 +1542,19 @@
         provinceInput.value = 'fujian';
         syncDomesticCities();
         domesticCityInput.value = 'fuzhou';
-        $('submitBtn').click();
+        var onGh = location.hostname.indexOf('github.io') !== -1;
+        if (onGh && apiBase()) {
+          message.textContent = '接口预热中，完成后点击“开始排盘”响应更快';
+          message.className = 'message';
+          warmupApi().then(function() {
+            if (message.textContent && message.textContent.indexOf('预热中') !== -1) {
+              message.textContent = '接口预热完成，可开始排盘';
+              message.className = 'message';
+            }
+          });
+        } else {
+          $('submitBtn').click();
+        }
       });
     </script>
   </body>
