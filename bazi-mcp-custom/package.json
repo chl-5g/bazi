@@ -1,0 +1,43 @@
+{
+  "name": "my-bazi-mcp",
+  "version": "0.1.0",
+  "type": "module",
+  "module": "./src/smithery.ts",
+  "devDependencies": {
+    "@tsconfig/node22": "^22.0.1",
+    "@types/express": "^5.0.3",
+    "@types/node": "^22.14.1",
+    "typescript": "^5.8.3"
+  },
+  "description": "Customized Bazi MCP project based on cantian-ai/bazi-mcp.",
+  "keywords": [
+    "bazi",
+    "八字",
+    "mcp",
+    "算命",
+    "命理"
+  ],
+  "license": "ISC",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "tsc": "rm -rf dist && tsc",
+    "prepublishOnly": "npm run tsc && chmod +x dist/stdio.js",
+    "smithery-dev": "npx @smithery/cli dev",
+    "start": "npm run tsc && node dist/httpServer.js"
+  },
+  "bin": {
+    "my-bazi-mcp": "./dist/stdio.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.10.2",
+    "cantian-tymext": "^0.0.21",
+    "date-fns": "^3.6.0",
+    "date-fns-tz": "^3.2.0",
+    "express": "^5.1.0",
+    "tsx": "^4.20.5",
+    "tyme4ts": "^1.3.4",
+    "zod": "^3.24.3"
+  }
+}

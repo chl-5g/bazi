@@ -1,0 +1,746 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>八字排盘</title>
+    <style>
+      :root {
+        --bg: #f2f1ee;
+        --panel: #ffffff;
+        --panel-alt: #f7f6f3;
+        --text: #1a1a2e;
+        --muted: #666;
+        --gold: #1a1a2e;
+        --gold-dark: #0e0e1a;
+        --border: #d0cec8;
+        --red: #d81b1b;
+        --wood: #1f9d55;
+        --fire: #d81b1b;
+        --metal: #b08d56;
+        --water: #1e63d6;
+        --earth: #8b5a2b;
+        --head-bg: linear-gradient(135deg, #eae8e3 0%, #e2e0da 100%);
+        --head-title-color: #1a1a2e;
+        --btn-primary-text: #fff;
+      }
+      [data-theme="dark"] {
+        --bg: #08080e;
+        --panel: #0f0f18;
+        --panel-alt: #161622;
+        --text: #dcdce5;
+        --muted: #7a7a90;
+        --gold: #c0c0d0;
+        --gold-dark: #9a9aae;
+        --border: #2a2a3a;
+        --red: #e85050;
+        --wood: #4abe7a;
+        --fire: #e85050;
+        --metal: #d9b063;
+        --water: #5a9cf5;
+        --earth: #c89050;
+        --head-bg: linear-gradient(135deg, #12121e 0%, #0a0a14 100%);
+        --head-title-color: #c0c0d0;
+        --btn-primary-text: #08080e;
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: "PingFang SC", "Microsoft YaHei", -apple-system, sans-serif;
+        color: var(--text);
+        background: var(--bg);
+        min-height: 100vh;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        min-height: 100vh;
+      }
+      .sidebar {
+        background: var(--panel);
+        border-right: 1px solid var(--border);
+        padding: 16px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .section-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--gold);
+        margin-bottom: 4px;
+      }
+      .form-group { margin-bottom: 6px; }
+      .form-group label {
+        display: block;
+        font-size: 14px;
+        color: var(--muted);
+        margin-bottom: 3px;
+      }
+      .form-group input,
+      .form-group select {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 7px 8px;
+        font-size: 14px;
+        background: var(--panel-alt);
+        color: var(--text);
+        outline: none;
+      }
+      .form-group input:focus,
+      .form-group select:focus { border-color: var(--gold); }
+      .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+      }
+      .divider {
+        height: 1px;
+        background: var(--border);
+        margin: 4px 0;
+      }
+      .btn-row { display: flex; gap: 8px; margin-top: 4px; }
+      .btn-primary {
+        flex: 1;
+        background: var(--gold);
+        color: var(--btn-primary-text);
+        border: none;
+        border-radius: 6px;
+        padding: 9px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .btn-primary:hover { background: var(--gold-dark); }
+      .btn-secondary {
+        background: var(--panel-alt);
+        color: var(--muted);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 9px 14px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      .message { margin-top: 6px; font-size: 14px; }
+      .error { color: var(--red); }
+
+      .main {
+        padding: 16px;
+        overflow-y: auto;
+      }
+      .result-head {
+        padding: 14px 20px;
+        background: var(--head-bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .result-head .title {
+        color: var(--head-title-color);
+        font-size: 22px;
+        font-weight: 700;
+      }
+      .result-head .meta {
+        font-size: 14px;
+        color: var(--muted);
+        line-height: 1.6;
+        text-align: right;
+      }
+
+      /* 大运流年滚动区 */
+      .luck-wrap {
+        overflow-x: auto;
+        width: 100%;
+      }
+      .luck-wrap::-webkit-scrollbar { height: 8px; }
+      .luck-wrap::-webkit-scrollbar-track { background: var(--panel-alt); border-radius: 4px; }
+      .luck-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+      .luck-wrap::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+      /* 四柱表格 */
+      .pillar-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        border: 2px solid var(--gold);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .pillar-table th,
+      .pillar-table td {
+        border: 1px solid var(--border);
+        padding: 8px 12px;
+        text-align: center;
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--text);
+      }
+      .pillar-table th {
+        background: var(--panel-alt);
+        color: var(--gold);
+        font-size: 18px;
+      }
+      .pillar-table .stub {
+        background: var(--panel-alt);
+        color: var(--gold);
+        font-size: 18px;
+      }
+      .pillar-table .big-char {
+        font-size: 32px;
+        font-weight: 700;
+        padding: 10px 12px;
+      }
+      .c-wood { color: var(--wood) !important; }
+      .c-fire { color: var(--fire) !important; }
+      .c-metal { color: var(--metal) !important; }
+      .c-water { color: var(--water) !important; }
+      .c-earth { color: var(--earth) !important; }
+
+      .section-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--gold);
+        margin-bottom: 8px;
+      }
+      .result-block {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 12px;
+      }
+
+      /* 大运流年综合表格 */
+      .luck-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        border: 2px solid var(--gold);
+        border-radius: 8px;
+        overflow: hidden;
+        table-layout: fixed;
+      }
+      .luck-table th,
+      .luck-table td {
+        border: 1px solid var(--border);
+        padding: 5px 7px;
+        text-align: center;
+        font-size: 14px;
+        color: var(--text);
+        white-space: nowrap;
+      }
+      .luck-table th {
+        background: var(--panel-alt);
+        color: var(--muted);
+        font-weight: 600;
+      }
+      .luck-table .stub {
+        background: var(--panel-alt);
+        color: var(--muted);
+        font-size: 14px;
+        min-width: 72px;
+      }
+      .luck-table .dy-header {
+        background: var(--panel-alt);
+        font-weight: 700;
+        font-size: 16px;
+      }
+      .luck-table .dy-sub {
+        background: var(--panel-alt);
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .luck-table .ln-cell {
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      .luck-table .ln-year {
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .luck-table .ln-gz {
+        font-weight: 600;
+        font-size: 14px;
+      }
+
+      .candidate-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+      }
+      .candidate-tag {
+        background: var(--panel-alt);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 10px 12px;
+        text-align: center;
+        font-size: 14px;
+        color: var(--text);
+      }
+      .candidate-link {
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .candidate-link:hover {
+        border-color: var(--gold);
+        color: var(--gold);
+        background: var(--panel);
+      }
+      #resultWrap:empty::after {
+        content: "请在左侧输入信息后点击「开始排盘」";
+        display: block;
+        text-align: center;
+        color: var(--muted);
+        padding: 60px 20px;
+        font-size: 14px;
+      }
+
+      .theme-toggle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: var(--muted);
+        cursor: pointer;
+        user-select: none;
+      }
+      .theme-toggle .switch {
+        width: 36px; height: 20px; border-radius: 10px;
+        background: var(--border); position: relative; transition: background 0.2s;
+      }
+      .theme-toggle .switch::after {
+        content: ""; position: absolute;
+        width: 16px; height: 16px; border-radius: 50%;
+        background: var(--panel); top: 2px; left: 2px;
+        transition: transform 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+      }
+      .theme-toggle.dark .switch { background: var(--gold); }
+      .theme-toggle.dark .switch::after { transform: translateX(16px); }
+
+      @media (max-width: 900px) {
+        .layout { grid-template-columns: 1fr; }
+        .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
+        .pillar-table th, .pillar-table .stub { font-size: 16px; }
+        .pillar-table .big-char { font-size: 26px; }
+      }
+      @media (max-width: 600px) {
+        .main { padding: 10px; }
+        .result-block { padding: 8px; }
+        .pillar-table th, .pillar-table .stub { font-size: 14px; }
+        .pillar-table .big-char { font-size: 22px; }
+        .luck-table th, .luck-table td { font-size: 13px; padding: 3px 4px; }
+        .luck-table .dy-header { font-size: 14px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <div class="sidebar">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;border-bottom:1px solid var(--border)">
+          <div style="color:var(--gold);font-size:18px;font-weight:700">八字排盘</div>
+          <div class="theme-toggle" id="themeToggle">
+            <span id="themeLabel">日间</span>
+            <div class="switch"></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="section-label">按出生日期排盘</div>
+          <div class="form-group">
+            <label>出生日期时间</label>
+            <input id="datetime" type="datetime-local" />
+          </div>
+          <div class="form-group">
+            <label>性别</label>
+            <select id="gender">
+              <option value="1">男</option>
+              <option value="0">女</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>时间类型</label>
+            <select id="timeMode">
+              <option value="standard">标准时间</option>
+              <option value="true_solar">真太阳时</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>出生地</label>
+            <select id="locationType">
+              <option value="domestic">国内</option>
+              <option value="overseas">海外</option>
+            </select>
+          </div>
+          <div id="domesticBlock">
+            <div class="form-group">
+              <label>省份</label>
+              <select id="province"></select>
+            </div>
+            <div class="form-group">
+              <label>城市</label>
+              <select id="domesticCity"></select>
+            </div>
+          </div>
+          <div id="overseasBlock" style="display:none">
+            <div class="form-group">
+              <label>国家</label>
+              <select id="country"></select>
+            </div>
+            <div class="form-group">
+              <label>城市</label>
+              <select id="overseasCity"></select>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button id="submitDatetime" class="btn-primary">开始排盘</button>
+            <button id="clearBtn" class="btn-secondary">清空</button>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div>
+          <div class="section-label">按四柱排盘</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>年柱</label>
+              <select id="yearPillar"></select>
+            </div>
+            <div class="form-group">
+              <label>月柱</label>
+              <select id="monthPillar"></select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>日柱</label>
+              <select id="dayPillar"></select>
+            </div>
+            <div class="form-group">
+              <label>时柱</label>
+              <select id="timePillar"></select>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button id="submitPillars" class="btn-primary">四柱排盘</button>
+          </div>
+        </div>
+
+        <div id="message" class="message"></div>
+      </div>
+
+      <div class="main">
+        <div class="result-head">
+          <div class="title">排盘结果</div>
+          <div class="meta" id="headMeta">阳历：-<br/>阴历：-</div>
+        </div>
+        <div id="resultWrap"></div>
+      </div>
+    </div>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+
+      // ===== 主题 =====
+      (function() {
+        const saved = localStorage.getItem('bazi-theme') || 'light';
+        if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+      })();
+      const themeToggle = $('themeToggle'), themeLabel = $('themeLabel');
+      function applyThemeUI() {
+        const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+        themeToggle.classList.toggle('dark', dark);
+        themeLabel.textContent = dark ? '夜间' : '日间';
+      }
+      applyThemeUI();
+      themeToggle.addEventListener('click', () => {
+        const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+        if (dark) { document.documentElement.removeAttribute('data-theme'); localStorage.setItem('bazi-theme', 'light'); }
+        else { document.documentElement.setAttribute('data-theme', 'dark'); localStorage.setItem('bazi-theme', 'dark'); }
+        applyThemeUI();
+      });
+
+      // ===== 60甲子 & 五虎遁 & 五鼠遁 =====
+      const GAN = '甲乙丙丁戊己庚辛壬癸';
+      const ZHI = '子丑寅卯辰巳午未申酉戌亥';
+      const JIA_ZI = [];
+      for (let i = 0; i < 60; i++) JIA_ZI.push(GAN[i % 10] + ZHI[i % 12]);
+
+      const MONTH_ZHI = '寅卯辰巳午未申酉戌亥子丑';
+      const WU_HU = { '甲': 2, '己': 2, '乙': 4, '庚': 4, '丙': 6, '辛': 6, '丁': 8, '壬': 8, '戊': 0, '癸': 0 };
+      const WU_SHU = { '甲': 0, '己': 0, '乙': 2, '庚': 2, '丙': 4, '辛': 4, '丁': 6, '壬': 6, '戊': 8, '癸': 8 };
+
+      function monthOptions(yearGan) {
+        const start = WU_HU[yearGan] || 0;
+        const opts = [];
+        for (let i = 0; i < 12; i++) opts.push(GAN[(start + i) % 10] + MONTH_ZHI[i]);
+        return opts;
+      }
+      function timeOptions(dayGan) {
+        const start = WU_SHU[dayGan] || 0;
+        const opts = [];
+        for (let i = 0; i < 12; i++) opts.push(GAN[(start + i) % 10] + ZHI[i]);
+        return opts;
+      }
+
+      const yearP = $('yearPillar'), monthP = $('monthPillar'), dayP = $('dayPillar'), timeP = $('timePillar');
+
+      function fillSelect(sel, items, keepValue) {
+        const prev = keepValue ? sel.value : '';
+        sel.innerHTML = items.map(v => '<option value="' + v + '">' + v + '</option>').join('');
+        if (prev && items.includes(prev)) sel.value = prev;
+      }
+
+      function initPillarSelects() {
+        fillSelect(yearP, JIA_ZI);
+        fillSelect(dayP, JIA_ZI);
+        syncMonthPillar();
+        syncTimePillar();
+      }
+      function syncMonthPillar() {
+        const yg = yearP.value ? yearP.value[0] : '甲';
+        fillSelect(monthP, monthOptions(yg), true);
+      }
+      function syncTimePillar() {
+        const dg = dayP.value ? dayP.value[0] : '甲';
+        fillSelect(timeP, timeOptions(dg), true);
+      }
+      yearP.addEventListener('change', syncMonthPillar);
+      dayP.addEventListener('change', syncTimePillar);
+      initPillarSelects();
+
+      // ===== DOM refs =====
+      const datetimeInput = $('datetime');
+      const genderInput = $('gender');
+      const timeModeInput = $('timeMode');
+      const locationTypeInput = $('locationType');
+      const provinceInput = $('province');
+      const domesticCityInput = $('domesticCity');
+      const countryInput = $('country');
+      const overseasCityInput = $('overseasCity');
+      const domesticBlock = $('domesticBlock');
+      const overseasBlock = $('overseasBlock');
+      const message = $('message');
+      const resultWrap = $('resultWrap');
+      const headMeta = $('headMeta');
+
+      let locationData = { provinces: [], countries: [] };
+
+      async function loadLocations() {
+        try {
+          const res = await fetch('/api/locations');
+          locationData = await res.json();
+          provinceInput.innerHTML = locationData.provinces.map(p => '<option value="' + p.code + '">' + p.name + '</option>').join('');
+          syncDomesticCities();
+          countryInput.innerHTML = locationData.countries.map(c => '<option value="' + c.code + '">' + c.name + '</option>').join('');
+          syncOverseasCities();
+        } catch (e) { console.error(e); }
+      }
+      function syncDomesticCities() {
+        const prov = locationData.provinces.find(p => p.code === provinceInput.value);
+        domesticCityInput.innerHTML = prov ? prov.cities.map(c => '<option value="' + c.code + '">' + c.name + '</option>').join('') : '';
+      }
+      function syncOverseasCities() {
+        const ctry = locationData.countries.find(c => c.code === countryInput.value);
+        overseasCityInput.innerHTML = ctry ? ctry.cities.map(c => '<option value="' + c.code + '">' + c.name + '</option>').join('') : '';
+      }
+      function syncLocationBlocks() {
+        const d = locationTypeInput.value === 'domestic';
+        domesticBlock.style.display = d ? 'block' : 'none';
+        overseasBlock.style.display = d ? 'none' : 'block';
+      }
+      provinceInput.addEventListener('change', syncDomesticCities);
+      countryInput.addEventListener('change', syncOverseasCities);
+      locationTypeInput.addEventListener('change', syncLocationBlocks);
+
+      // ===== 五行颜色 =====
+      function cc(ch) {
+        if (!ch) return '';
+        if ('甲乙寅卯'.includes(ch)) return 'c-wood';
+        if ('丙丁巳午'.includes(ch)) return 'c-fire';
+        if ('庚辛申酉'.includes(ch)) return 'c-metal';
+        if ('壬癸亥子'.includes(ch)) return 'c-water';
+        if ('戊己辰戌丑未'.includes(ch)) return 'c-earth';
+        return '';
+      }
+      function cz(gz) {
+        if (!gz) return '-';
+        var out = '';
+        for (var i = 0; i < gz.length; i++) {
+          var cls = cc(gz[i]);
+          out += cls ? '<span class="' + cls + '">' + gz[i] + '</span>' : gz[i];
+        }
+        return out;
+      }
+
+      // ===== 渲染 =====
+      function renderDatetimeResult(data) {
+        headMeta.innerHTML = '阳历：' + data.solar_datetime + '<br/>阴历：' + data.lunar_date;
+        var cols = [
+          { t: '年柱', v: data.year_pillar },
+          { t: '月柱', v: data.month_pillar },
+          { t: '日柱', v: data.day_pillar },
+          { t: '时柱', v: data.time_pillar },
+        ];
+        var yun = data.yun || {};
+        var daYun = yun.da_yun || [];
+        var xiaoYun = yun.xiao_yun || [];
+
+        // 四柱表格
+        var pt = '<table class="pillar-table"><thead><tr><th class="stub"></th>';
+        cols.forEach(function(c) { pt += '<th>' + c.t + '</th>'; });
+        pt += '</tr></thead><tbody>';
+        pt += '<tr><td class="stub">天干</td>';
+        cols.forEach(function(c) { var ch = c.v ? c.v[0] : '-'; pt += '<td class="big-char ' + cc(ch) + '">' + ch + '</td>'; });
+        pt += '</tr><tr><td class="stub">地支</td>';
+        cols.forEach(function(c) { var ch = c.v ? c.v[1] : '-'; pt += '<td class="big-char ' + cc(ch) + '">' + ch + '</td>'; });
+        pt += '</tr></tbody></table>';
+
+        // 大运流年表格
+        var lt = '';
+        if (daYun.length) {
+          var maxLn = 0;
+          daYun.forEach(function(d) { if (d.liu_nian && d.liu_nian.length > maxLn) maxLn = d.liu_nian.length; });
+
+          var visibleCols = 8;
+          var totalUnits = 1 + daYun.length;
+          var tblPct = (totalUnits / (1 + visibleCols) * 100).toFixed(2);
+          var stubPct = (1 / totalUnits * 100).toFixed(2);
+          var colPct = (1 / totalUnits * 100).toFixed(2);
+          lt += '<table class="luck-table" style="width:' + tblPct + '%"><colgroup><col style="width:' + stubPct + '%"/>';
+          daYun.forEach(function() { lt += '<col style="width:' + colPct + '%"/>'; });
+          lt += '</colgroup><thead>';
+          lt += '<tr><th class="stub">大运</th>';
+          daYun.forEach(function(d) { lt += '<th class="dy-header">' + cz(d.gan_zhi) + '</th>'; });
+          lt += '</tr>';
+          lt += '<tr><th class="stub">年份</th>';
+          daYun.forEach(function(d) { lt += '<th class="dy-sub">' + d.start_year + '-' + d.end_year + '</th>'; });
+          lt += '</tr>';
+          lt += '<tr><th class="stub">小运</th>';
+          daYun.forEach(function(d) { lt += '<th class="dy-sub">' + d.start_age + '-' + d.end_age + '岁</th>'; });
+          lt += '</tr></thead><tbody>';
+
+          for (var r = 0; r < maxLn; r++) {
+            lt += '<tr>';
+            if (r < xiaoYun.length) {
+              var xy = xiaoYun[r];
+              lt += '<td class="stub">' + cz(xy.gan_zhi) + ' ' + xy.age + '岁</td>';
+            } else {
+              lt += '<td class="stub"></td>';
+            }
+            daYun.forEach(function(d) {
+              var lns = d.liu_nian || [];
+              if (r < lns.length) {
+                lt += '<td class="ln-cell"><span class="ln-year">' + lns[r].year + '</span> <span class="ln-gz">' + cz(lns[r].gan_zhi) + '</span></td>';
+              } else {
+                lt += '<td></td>';
+              }
+            });
+            lt += '</tr>';
+          }
+          lt += '</tbody></table>';
+        }
+
+        var h = '<div class="result-block">';
+        h += '<div class="section-title">四柱</div>';
+        h += pt;
+        h += '</div>';
+        if (lt) {
+          h += '<div class="result-block">';
+          h += '<div class="section-title">大运 / 流年</div>';
+          h += '<div class="luck-wrap">' + lt + '</div>';
+          h += '</div>';
+        }
+
+        resultWrap.innerHTML = h;
+      }
+
+      function renderPillarsResult(data) {
+        headMeta.innerHTML = '四柱：' + data.bazi;
+        var ch = '';
+        if (data.candidates && data.candidates.length) {
+          ch = data.candidates.map(function(c) {
+            return '<div class="candidate-tag candidate-link" data-dt="' + c + '">' + c + '</div>';
+          }).join('');
+        } else {
+          ch = '<div style="color:var(--muted)">未找到匹配公历时间</div>';
+        }
+        resultWrap.innerHTML = '<div class="result-block"><div class="section-title">匹配的公历时间（共 ' + data.count + ' 个）</div><div class="candidate-grid">' + ch + '</div></div>';
+        resultWrap.querySelectorAll('.candidate-link').forEach(function(el) {
+          el.addEventListener('click', async function() {
+            var dt = this.getAttribute('data-dt').replace(' ', 'T').slice(0, 16);
+            var isDomestic = locationTypeInput.value === 'domestic';
+            var payload = {
+              mode: 'datetime', datetime: dt, timeMode: 'standard',
+              locationType: locationTypeInput.value, gender: parseInt(genderInput.value), sect: 2,
+            };
+            if (isDomestic) { payload.province = provinceInput.value; payload.city = domesticCityInput.value; }
+            else { payload.country = countryInput.value; payload.city = overseasCityInput.value; }
+            try {
+              var res = await fetch('/api/bazi', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+              var d = await res.json();
+              if (!res.ok) { message.textContent = d.error; message.className = 'message error'; return; }
+              renderDatetimeResult(d);
+            } catch (err) { message.textContent = '请求失败: ' + err.message; message.className = 'message error'; }
+          });
+        });
+      }
+
+      // ===== 提交 =====
+      $('submitDatetime').addEventListener('click', async function() {
+        message.textContent = '';
+        var dt = datetimeInput.value;
+        if (!dt) { message.textContent = '请选择出生日期时间'; message.className = 'message error'; return; }
+        var isDomestic = locationTypeInput.value === 'domestic';
+        var payload = {
+          mode: 'datetime', datetime: dt, timeMode: timeModeInput.value,
+          locationType: locationTypeInput.value, gender: parseInt(genderInput.value), sect: 2,
+        };
+        if (isDomestic) { payload.province = provinceInput.value; payload.city = domesticCityInput.value; }
+        else { payload.country = countryInput.value; payload.city = overseasCityInput.value; }
+        try {
+          var res = await fetch('/api/bazi', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+          var data = await res.json();
+          if (!res.ok) { message.textContent = data.error; message.className = 'message error'; return; }
+          renderDatetimeResult(data);
+        } catch (err) { message.textContent = '请求失败: ' + err.message; message.className = 'message error'; }
+      });
+
+      $('submitPillars').addEventListener('click', async function() {
+        message.textContent = '';
+        var payload = { mode: 'pillars', yearPillar: yearP.value, monthPillar: monthP.value, dayPillar: dayP.value, timePillar: timeP.value };
+        try {
+          var res = await fetch('/api/bazi', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+          var data = await res.json();
+          if (!res.ok) { message.textContent = data.error; message.className = 'message error'; return; }
+          if (!data.count) { renderPillarsResult(data); return; }
+          renderPillarsResult(data);
+        } catch (err) { message.textContent = '请求失败: ' + err.message; message.className = 'message error'; }
+      });
+
+      $('clearBtn').addEventListener('click', function() {
+        datetimeInput.value = '';
+        genderInput.value = '1'; timeModeInput.value = 'standard'; locationTypeInput.value = 'domestic';
+        syncLocationBlocks();
+        yearP.selectedIndex = 0; dayP.selectedIndex = 0; syncMonthPillar(); syncTimePillar();
+        message.textContent = ''; resultWrap.innerHTML = '';
+        headMeta.innerHTML = '阳历：-<br/>阴历：-';
+      });
+
+      // ===== 初始化 =====
+      (function() {
+        var n = new Date(), p = function(v) { return String(v).padStart(2, '0'); };
+        datetimeInput.value = n.getFullYear() + '-' + p(n.getMonth()+1) + '-' + p(n.getDate()) + 'T' + p(n.getHours()) + ':' + p(n.getMinutes());
+      })();
+      loadLocations().then(function() {
+        provinceInput.value = 'fujian';
+        syncDomesticCities();
+        domesticCityInput.value = 'fuzhou';
+        $('submitDatetime').click();
+      });
+    </script>
+  </body>
+</html>
