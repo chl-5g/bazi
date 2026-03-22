@@ -11,7 +11,7 @@ bazi/
 │   │   ├── app.py         # Flask 后端 API
 │   │   └── requirements.txt
 │   └── frontend/
-│       └── index.html     # 单页前端
+│       └── index.html     # 单页前端（HTML/CSS/JS）
 ├── bazi-mcp/              # 八字 MCP Server（来自 cantian-ai）
 │   └── src/
 ├── bazi-mcp-custom/       # 自定义八字 MCP Server
@@ -23,14 +23,19 @@ bazi/
 
 ### 功能
 
-- **按出生日期排盘**：输入公历日期时间，自动计算四柱八字、大运、流年、小运
-- **按四柱排盘**：选择年柱/月柱/日柱/时柱干支，反查匹配的公历时间，点击即可查看完整排盘
-- **真太阳时校正**：支持国内省市 / 海外国家城市选择，根据经度和时区自动换算真太阳时
+- **三种排盘方式**：统一入口，下拉切换
+  - 按公历时间排盘：输入公历日期时间
+  - 按农历时间排盘：选择农历年月日 + 时辰，支持闰月
+  - 按四柱排盘：选择年柱/月柱/日柱/时柱干支，反查 1900–2100 年内匹配的公历时间，点击即可查看完整排盘
+- **用户信息**：支持输入姓名，结果页显示姓名与乾造/坤造
+- **真太阳时校正**：滑块开关，根据出生地经度和时区自动换算；四柱排盘模式下自动隐藏
+- **出生地选择**：国内按省份-城市、海外按国家-城市级联选择
 - **五行配色**：甲乙寅卯（木/绿）、丙丁巳午（火/红）、戊己辰戌丑未（土/棕）、庚辛申酉（金/金色）、壬癸亥子（水/蓝）
-- **大运流年表**：默认显示 8 列大运，横向滚动查看更多，覆盖至 120 岁以上
+- **大运流年表**：默认显示 8 列大运，横向滚动查看更多，上限 120 岁
 - **四柱下拉联动**：年柱/日柱提供 60 甲子选项，月柱按五虎遁、时柱按五鼠遁动态生成
-- **明暗主题切换**：支持日间/夜间模式，自动保存偏好
+- **明暗主题切换**：日间/夜间模式，偏好自动保存
 - **响应式布局**：适配桌面、平板、手机
+- **加载指示器**：排盘计算中显示转圈动画
 
 ### 技术栈
 
@@ -59,14 +64,33 @@ open http://localhost:8000
 
 #### POST /api/bazi
 
-按出生日期排盘：
+按公历时间排盘：
 
 ```json
 {
   "mode": "datetime",
   "datetime": "1998-07-31T14:10",
   "gender": 1,
-  "timeMode": "standard",
+  "timeMode": "true_solar",
+  "locationType": "domestic",
+  "province": "fujian",
+  "city": "fuzhou"
+}
+```
+
+按农历时间排盘：
+
+```json
+{
+  "mode": "lunar",
+  "lunarYear": 1998,
+  "lunarMonth": 6,
+  "lunarDay": 9,
+  "hour": 14,
+  "minute": 10,
+  "isLeapMonth": false,
+  "gender": 1,
+  "timeMode": "true_solar",
   "locationType": "domestic",
   "province": "fujian",
   "city": "fuzhou"
@@ -93,7 +117,7 @@ open http://localhost:8000
 
 ### bazi-mcp
 
-来自 [cantian-ai/bazi-mcp](https://github.com/user-attachments/assets/7790b64e-e03f-47e2-b824-38459549a6d8) 的八字 MCP Server，提供以下工具：
+来自 cantian-ai 的八字 MCP Server，提供以下工具：
 
 - `getBaziDetail` — 根据公历/农历时间计算完整八字信息
 - `getSolarTimes` — 根据八字反查公历时间

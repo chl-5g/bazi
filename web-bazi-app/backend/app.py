@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Optional
 
 from flask import Flask, jsonify, request, send_from_directory
-from lunar_python import Solar
+from lunar_python import Lunar, Solar
 
 
 BASE_DIR = Path(__file__).resolve().parents[1]
@@ -384,6 +384,8 @@ def build_bazi_result(
             for x in item.getXiaoYun(10):
                 xiao_yun_list.append({"year": x.getYear(), "age": x.getAge(), "gan_zhi": x.getGanZhi()})
             continue
+        if item.getStartAge() > 120:
+            break
         span = max(1, item.getEndYear() - item.getStartYear() + 1)
         liu_nian = item.getLiuNian(min(10, span))
         da_yun_list.append({
@@ -391,7 +393,7 @@ def build_bazi_result(
             "start_year": item.getStartYear(),
             "end_year": item.getEndYear(),
             "start_age": item.getStartAge(),
-            "end_age": item.getEndAge(),
+            "end_age": min(item.getEndAge(), 120),
             "liu_nian": [{"year": n.getYear(), "gan_zhi": n.getGanZhi()} for n in liu_nian],
         })
 
@@ -419,6 +421,35 @@ def build_bazi_result(
             "da_yun": da_yun_list,
         },
     }
+
+
+def build_bazi_from_lunar(
+    lunar_year: int,
+    lunar_month: int,
+    lunar_day: int,
+    hour: int = 0,
+    minute: int = 0,
+    is_leap_month: bool = False,
+    time_mode: str = "standard",
+    longitude: Optional[float] = None,
+    utc_offset: Optional[float] = None,
+    location_label: Optional[str] = None,
+    gender: int = 1,
+    sect: int = 2,
+) -> dict:
+    month_val = -abs(lunar_month) if is_leap_month else lunar_month
+    lunar = Lunar.fromYmdHms(lunar_year, month_val, lunar_day, hour, minute, 0)
+    solar = lunar.getSolar()
+    solar_dt_str = f"{solar.getYear():04d}-{solar.getMonth():02d}-{solar.getDay():02d}T{hour:02d}:{minute:02d}"
+    return build_bazi_result(
+        solar_dt_str,
+        time_mode=time_mode,
+        longitude=longitude,
+        utc_offset=utc_offset,
+        location_label=location_label,
+        gender=gender,
+        sect=sect,
+    )
 
 
 def build_bazi_from_pillars(
@@ -508,6 +539,57 @@ def get_bazi():
                 return jsonify({"error": "请输入出生日期时间"}), 400
             result = build_bazi_result(
                 input_datetime,
+                time_mode=time_mode,
+                longitude=longitude_value,
+                utc_offset=utc_offset,
+                location_label=location_label,
+                gender=gender,
+                sect=sect,
+            )
+        elif mode == "lunar":
+            lunar_year = int(payload.get("lunarYear"))
+            lunar_month = int(payload.get("lunarMonth"))
+            lunar_day = int(payload.get("lunarDay"))
+            hour = int(payload.get("hour", 0))
+            minute = int(payload.get("minute", 0))
+            is_leap_month = bool(payload.get("isLeapMonth", False))
+            time_mode = payload.get("timeMode", "standard")
+            location_type = payload.get("locationType", "domestic")
+            gender = int(payload.get("gender", 1))
+            sect = int(payload.get("sect", 2))
+            longitude_value = None
+            utc_offset = 8.0
+            location_label = None
+
+            if location_type == "domestic":
+                province_code = payload.get("province", "")
+                city_code = payload.get("city", "")
+                province = PROVINCES.get(province_code)
+                if province is None:
+                    return jsonify({"error": "无效的省份"}), 400
+                city = province["cities"].get(city_code)
+                if city is None:
+                    return jsonify({"error": "无效的城市"}), 400
+                longitude_value = city["longitude"]
+                location_label = f"{province['name']}{city['name']}"
+            elif location_type == "overseas":
+                country_code = payload.get("country", "")
+                city_code = payload.get("city", "")
+                country = OVERSEAS.get(country_code)
+                if country is None:
+                    return jsonify({"error": "无效的国家"}), 400
+                city = country["cities"].get(city_code)
+                if city is None:
+                    return jsonify({"error": "无效的城市"}), 400
+                longitude_value = city["longitude"]
+                utc_offset = city["utc_offset"]
+                location_label = f"{country['name']}{city['name']}"
+            else:
+                return jsonify({"error": "无效的地址类型"}), 400
+
+            result = build_bazi_from_lunar(
+                lunar_year, lunar_month, lunar_day, hour, minute,
+                is_leap_month=is_leap_month,
                 time_mode=time_mode,
                 longitude=longitude_value,
                 utc_offset=utc_offset,

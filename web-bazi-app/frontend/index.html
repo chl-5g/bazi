@@ -125,6 +125,25 @@
       .message { margin-top: 6px; font-size: 14px; }
       .error { color: var(--red); }
 
+      .loading-overlay {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 60px 20px;
+        gap: 16px;
+        color: var(--muted);
+        font-size: 15px;
+      }
+      .spinner {
+        width: 36px; height: 36px;
+        border: 3px solid var(--border);
+        border-top-color: var(--gold);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
       .main {
         padding: 16px;
         overflow-y: auto;
@@ -298,7 +317,7 @@
         font-size: 14px;
       }
 
-      .theme-toggle {
+      .slider-toggle {
         display: flex;
         align-items: center;
         gap: 8px;
@@ -307,18 +326,18 @@
         cursor: pointer;
         user-select: none;
       }
-      .theme-toggle .switch {
+      .slider-toggle .switch {
         width: 36px; height: 20px; border-radius: 10px;
         background: var(--border); position: relative; transition: background 0.2s;
       }
-      .theme-toggle .switch::after {
+      .slider-toggle .switch::after {
         content: ""; position: absolute;
         width: 16px; height: 16px; border-radius: 50%;
         background: var(--panel); top: 2px; left: 2px;
         transition: transform 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.2);
       }
-      .theme-toggle.dark .switch { background: var(--gold); }
-      .theme-toggle.dark .switch::after { transform: translateX(16px); }
+      .slider-toggle.active .switch { background: var(--gold); }
+      .slider-toggle.active .switch::after { transform: translateX(16px); }
 
       @media (max-width: 900px) {
         .layout { grid-template-columns: 1fr; }
@@ -341,30 +360,22 @@
       <div class="sidebar">
         <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;border-bottom:1px solid var(--border)">
           <div style="color:var(--gold);font-size:18px;font-weight:700">八字排盘</div>
-          <div class="theme-toggle" id="themeToggle">
+          <div class="slider-toggle" id="themeToggle">
             <span id="themeLabel">日间</span>
             <div class="switch"></div>
           </div>
         </div>
 
         <div>
-          <div class="section-label">按出生日期排盘</div>
           <div class="form-group">
-            <label>出生日期时间</label>
-            <input id="datetime" type="datetime-local" />
+            <label>姓名</label>
+            <input id="userName" type="text" placeholder="选填" />
           </div>
           <div class="form-group">
             <label>性别</label>
             <select id="gender">
               <option value="1">男</option>
               <option value="0">女</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>时间类型</label>
-            <select id="timeMode">
-              <option value="standard">标准时间</option>
-              <option value="true_solar">真太阳时</option>
             </select>
           </div>
           <div class="form-group">
@@ -394,38 +405,95 @@
               <select id="overseasCity"></select>
             </div>
           </div>
-          <div class="btn-row">
-            <button id="submitDatetime" class="btn-primary">开始排盘</button>
-            <button id="clearBtn" class="btn-secondary">清空</button>
-          </div>
         </div>
 
         <div class="divider"></div>
 
         <div>
-          <div class="section-label">按四柱排盘</div>
-          <div class="form-row">
+          <div class="section-label">排盘方式</div>
+          <div class="form-group">
+            <select id="calendarType">
+              <option value="solar">按公历时间排盘</option>
+              <option value="lunar">按农历时间排盘</option>
+              <option value="pillars">按四柱排盘</option>
+            </select>
+          </div>
+          <div id="solarBlock">
             <div class="form-group">
-              <label>年柱</label>
-              <select id="yearPillar"></select>
-            </div>
-            <div class="form-group">
-              <label>月柱</label>
-              <select id="monthPillar"></select>
+              <label>出生日期时间</label>
+              <input id="datetime" type="datetime-local" />
             </div>
           </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>日柱</label>
-              <select id="dayPillar"></select>
+          <div id="lunarBlock" style="display:none">
+            <div class="form-row">
+              <div class="form-group">
+                <label>农历年</label>
+                <input id="lunarYear" type="number" min="1900" max="2100" placeholder="如 1998" />
+              </div>
+              <div class="form-group">
+                <label>农历月</label>
+                <select id="lunarMonth">
+                  <option value="1">正月</option><option value="2">二月</option>
+                  <option value="3">三月</option><option value="4">四月</option>
+                  <option value="5">五月</option><option value="6">六月</option>
+                  <option value="7">七月</option><option value="8">八月</option>
+                  <option value="9">九月</option><option value="10">十月</option>
+                  <option value="11">冬月</option><option value="12">腊月</option>
+                </select>
+              </div>
             </div>
-            <div class="form-group">
-              <label>时柱</label>
-              <select id="timePillar"></select>
+            <div class="form-row">
+              <div class="form-group">
+                <label>农历日</label>
+                <select id="lunarDay"></select>
+              </div>
+              <div class="form-group" style="display:flex;align-items:end;gap:6px">
+                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:14px;color:var(--muted);white-space:nowrap">
+                  <input id="lunarLeap" type="checkbox" style="width:auto" /> 闰月
+                </label>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>时</label>
+                <select id="lunarHour"></select>
+              </div>
+              <div class="form-group">
+                <label>分</label>
+                <select id="lunarMinute"></select>
+              </div>
             </div>
           </div>
+          <div id="pillarsBlock" style="display:none">
+            <div class="form-row">
+              <div class="form-group">
+                <label>年柱</label>
+                <select id="yearPillar"></select>
+              </div>
+              <div class="form-group">
+                <label>月柱</label>
+                <select id="monthPillar"></select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>日柱</label>
+                <select id="dayPillar"></select>
+              </div>
+              <div class="form-group">
+                <label>时柱</label>
+                <select id="timePillar"></select>
+              </div>
+            </div>
+          </div>
+          <div id="timeModeWrap" class="slider-toggle active" style="margin:6px 0">
+            <span id="timeModeLabel">真太阳时</span>
+            <div class="switch"></div>
+          </div>
+          <input type="hidden" id="timeMode" value="true_solar" />
           <div class="btn-row">
-            <button id="submitPillars" class="btn-primary">四柱排盘</button>
+            <button id="submitBtn" class="btn-primary">开始排盘</button>
+            <button id="clearBtn" class="btn-secondary">清空</button>
           </div>
         </div>
 
@@ -434,7 +502,10 @@
 
       <div class="main">
         <div class="result-head">
-          <div class="title">排盘结果</div>
+          <div>
+            <div class="title" id="headTitle">排盘结果</div>
+            <div id="headUser" style="font-size:14px;color:var(--muted);margin-top:2px"></div>
+          </div>
           <div class="meta" id="headMeta">阳历：-<br/>阴历：-</div>
         </div>
         <div id="resultWrap"></div>
@@ -452,7 +523,7 @@
       const themeToggle = $('themeToggle'), themeLabel = $('themeLabel');
       function applyThemeUI() {
         const dark = document.documentElement.getAttribute('data-theme') === 'dark';
-        themeToggle.classList.toggle('dark', dark);
+        themeToggle.classList.toggle('active', dark);
         themeLabel.textContent = dark ? '夜间' : '日间';
       }
       applyThemeUI();
@@ -461,6 +532,15 @@
         if (dark) { document.documentElement.removeAttribute('data-theme'); localStorage.setItem('bazi-theme', 'light'); }
         else { document.documentElement.setAttribute('data-theme', 'dark'); localStorage.setItem('bazi-theme', 'dark'); }
         applyThemeUI();
+      });
+
+      // ===== 真太阳时滑块 =====
+      const timeModeWrap = $('timeModeWrap'), timeModeInput = $('timeMode'), timeModeLabel = $('timeModeLabel');
+      timeModeWrap.addEventListener('click', function() {
+        const on = timeModeInput.value === 'true_solar';
+        timeModeInput.value = on ? 'standard' : 'true_solar';
+        timeModeWrap.classList.toggle('active', !on);
+        timeModeLabel.textContent = on ? '标准时间' : '真太阳时';
       });
 
       // ===== 60甲子 & 五虎遁 & 五鼠遁 =====
@@ -512,10 +592,40 @@
       dayP.addEventListener('change', syncTimePillar);
       initPillarSelects();
 
+      // ===== 农历表单初始化 =====
+      (function() {
+        var lunarDaySel = $('lunarDay'), lunarHourSel = $('lunarHour'), lunarMinSel = $('lunarMinute');
+        var dayNames = ['初一','初二','初三','初四','初五','初六','初七','初八','初九','初十',
+          '十一','十二','十三','十四','十五','十六','十七','十八','十九','二十',
+          '廿一','廿二','廿三','廿四','廿五','廿六','廿七','廿八','廿九','三十'];
+        for (var i = 1; i <= 30; i++) lunarDaySel.innerHTML += '<option value="' + i + '">' + dayNames[i-1] + '</option>';
+        var zhiLabels = ['子时(23-1)','丑时(1-3)','寅时(3-5)','卯时(5-7)','辰时(7-9)','巳时(9-11)',
+          '午时(11-13)','未时(13-15)','申时(15-17)','酉时(17-19)','戌时(19-21)','亥时(21-23)'];
+        var zhiHours = [0,1,3,5,7,9,11,13,15,17,19,21];
+        for (var i = 0; i < 12; i++) lunarHourSel.innerHTML += '<option value="' + zhiHours[i] + '">' + zhiLabels[i] + '</option>';
+        for (var i = 0; i < 60; i++) lunarMinSel.innerHTML += '<option value="' + i + '">' + String(i).padStart(2,'0') + '</option>';
+        var n = new Date();
+        $('lunarYear').value = n.getFullYear();
+      })();
+
+      // ===== 排盘方式切换 =====
+      const calendarType = $('calendarType');
+      const solarBlock = $('solarBlock');
+      const lunarBlock = $('lunarBlock');
+      const pillarsBlock = $('pillarsBlock');
+      function syncCalendarBlocks() {
+        var v = calendarType.value;
+        solarBlock.style.display = v === 'solar' ? 'block' : 'none';
+        lunarBlock.style.display = v === 'lunar' ? 'block' : 'none';
+        pillarsBlock.style.display = v === 'pillars' ? 'block' : 'none';
+        timeModeWrap.style.display = v === 'pillars' ? 'none' : 'flex';
+      }
+      calendarType.addEventListener('change', syncCalendarBlocks);
+
       // ===== DOM refs =====
+      const userNameInput = $('userName');
       const datetimeInput = $('datetime');
       const genderInput = $('gender');
-      const timeModeInput = $('timeMode');
       const locationTypeInput = $('locationType');
       const provinceInput = $('province');
       const domesticCityInput = $('domesticCity');
@@ -576,9 +686,29 @@
         return out;
       }
 
+      // ===== 用户信息显示 =====
+      function updateHeadUser() {
+        var name = userNameInput.value.trim();
+        var genderText = genderInput.value === '1' ? '乾造' : '坤造';
+        var parts = [];
+        if (name) parts.push(name);
+        parts.push(genderText);
+        $('headUser').textContent = parts.join('　');
+      }
+
+      // ===== 加载 =====
+      function showLoading() {
+        resultWrap.innerHTML = '<div class="loading-overlay"><div class="spinner"></div><span>排盘中，请稍候…</span></div>';
+      }
+
       // ===== 渲染 =====
       function renderDatetimeResult(data) {
-        headMeta.innerHTML = '阳历：' + data.solar_datetime + '<br/>阴历：' + data.lunar_date;
+        updateHeadUser();
+        var metaHtml = '阳历：' + data.solar_datetime + '<br/>阴历：' + data.lunar_date;
+        if (data.time_mode === 'true_solar' && data.calc_datetime && data.calc_datetime !== data.solar_datetime) {
+          metaHtml += '<br/>真太阳时：' + data.calc_datetime;
+        }
+        headMeta.innerHTML = metaHtml;
         var cols = [
           { t: '年柱', v: data.year_pillar },
           { t: '月柱', v: data.month_pillar },
@@ -659,6 +789,7 @@
       }
 
       function renderPillarsResult(data) {
+        updateHeadUser();
         headMeta.innerHTML = '四柱：' + data.bazi;
         var ch = '';
         if (data.candidates && data.candidates.length) {
@@ -690,44 +821,51 @@
       }
 
       // ===== 提交 =====
-      $('submitDatetime').addEventListener('click', async function() {
-        message.textContent = '';
-        var dt = datetimeInput.value;
-        if (!dt) { message.textContent = '请选择出生日期时间'; message.className = 'message error'; return; }
+      function buildLocationPayload() {
         var isDomestic = locationTypeInput.value === 'domestic';
-        var payload = {
-          mode: 'datetime', datetime: dt, timeMode: timeModeInput.value,
-          locationType: locationTypeInput.value, gender: parseInt(genderInput.value), sect: 2,
-        };
-        if (isDomestic) { payload.province = provinceInput.value; payload.city = domesticCityInput.value; }
-        else { payload.country = countryInput.value; payload.city = overseasCityInput.value; }
-        try {
-          var res = await fetch('/api/bazi', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-          var data = await res.json();
-          if (!res.ok) { message.textContent = data.error; message.className = 'message error'; return; }
-          renderDatetimeResult(data);
-        } catch (err) { message.textContent = '请求失败: ' + err.message; message.className = 'message error'; }
-      });
+        var p = { locationType: locationTypeInput.value, gender: parseInt(genderInput.value), sect: 2, timeMode: timeModeInput.value };
+        if (isDomestic) { p.province = provinceInput.value; p.city = domesticCityInput.value; }
+        else { p.country = countryInput.value; p.city = overseasCityInput.value; }
+        return p;
+      }
 
-      $('submitPillars').addEventListener('click', async function() {
+      $('submitBtn').addEventListener('click', async function() {
         message.textContent = '';
-        var payload = { mode: 'pillars', yearPillar: yearP.value, monthPillar: monthP.value, dayPillar: dayP.value, timePillar: timeP.value };
+        var mode = calendarType.value;
+        var payload;
+        if (mode === 'lunar') {
+          var ly = $('lunarYear').value;
+          if (!ly) { message.textContent = '请输入农历年份'; message.className = 'message error'; return; }
+          payload = Object.assign({ mode: 'lunar', lunarYear: parseInt(ly), lunarMonth: parseInt($('lunarMonth').value),
+            lunarDay: parseInt($('lunarDay').value), hour: parseInt($('lunarHour').value),
+            minute: parseInt($('lunarMinute').value), isLeapMonth: $('lunarLeap').checked }, buildLocationPayload());
+        } else if (mode === 'pillars') {
+          payload = { mode: 'pillars', yearPillar: yearP.value, monthPillar: monthP.value, dayPillar: dayP.value, timePillar: timeP.value };
+        } else {
+          var dt = datetimeInput.value;
+          if (!dt) { message.textContent = '请选择出生日期时间'; message.className = 'message error'; return; }
+          payload = Object.assign({ mode: 'datetime', datetime: dt }, buildLocationPayload());
+        }
+        showLoading();
         try {
           var res = await fetch('/api/bazi', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
           var data = await res.json();
-          if (!res.ok) { message.textContent = data.error; message.className = 'message error'; return; }
-          if (!data.count) { renderPillarsResult(data); return; }
-          renderPillarsResult(data);
-        } catch (err) { message.textContent = '请求失败: ' + err.message; message.className = 'message error'; }
+          if (!res.ok) { message.textContent = data.error; message.className = 'message error'; resultWrap.innerHTML = ''; return; }
+          if (mode === 'pillars') renderPillarsResult(data);
+          else renderDatetimeResult(data);
+        } catch (err) { message.textContent = '请求失败: ' + err.message; message.className = 'message error'; resultWrap.innerHTML = ''; }
       });
 
       $('clearBtn').addEventListener('click', function() {
+        userNameInput.value = '';
+        calendarType.value = 'solar'; syncCalendarBlocks();
         datetimeInput.value = '';
-        genderInput.value = '1'; timeModeInput.value = 'standard'; locationTypeInput.value = 'domestic';
+        genderInput.value = '1'; timeModeInput.value = 'true_solar'; timeModeWrap.classList.add('active'); timeModeWrap.style.display = 'flex'; timeModeLabel.textContent = '真太阳时'; locationTypeInput.value = 'domestic';
         syncLocationBlocks();
         yearP.selectedIndex = 0; dayP.selectedIndex = 0; syncMonthPillar(); syncTimePillar();
         message.textContent = ''; resultWrap.innerHTML = '';
         headMeta.innerHTML = '阳历：-<br/>阴历：-';
+        $('headUser').textContent = '';
       });
 
       // ===== 初始化 =====
@@ -739,7 +877,7 @@
         provinceInput.value = 'fujian';
         syncDomesticCities();
         domesticCityInput.value = 'fuzhou';
-        $('submitDatetime').click();
+        $('submitBtn').click();
       });
     </script>
   </body>
