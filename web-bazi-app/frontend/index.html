@@ -791,13 +791,29 @@
 
       async function loadLocations() {
         try {
-          const res = await fetch(apiUrl('/api/locations'));
-          locationData = await res.json();
+          var data = null;
+          var res = await fetch(apiUrl('/api/locations'));
+          var ct = (res.headers.get('content-type') || '').toLowerCase();
+          if (res.ok && ct.indexOf('application/json') !== -1) {
+            try {
+              data = await res.json();
+            } catch (ignore) {
+              data = null;
+            }
+          }
+          if (!data || !Array.isArray(data.provinces)) {
+            var r2 = await fetch('locations.json');
+            if (!r2.ok) throw new Error('无法加载地点数据');
+            data = await r2.json();
+          }
+          locationData = data;
           provinceInput.innerHTML = locationData.provinces.map(p => '<option value="' + p.code + '">' + p.name + '</option>').join('');
           syncDomesticCities();
           countryInput.innerHTML = locationData.countries.map(c => '<option value="' + c.code + '">' + c.name + '</option>').join('');
           syncOverseasCities();
-        } catch (e) { console.error(e); }
+        } catch (e) {
+          console.error(e);
+        }
       }
       function syncDomesticCities() {
         const prov = locationData.provinces.find(p => p.code === provinceInput.value);

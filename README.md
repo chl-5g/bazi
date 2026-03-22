@@ -102,7 +102,10 @@ Pages 上没有 Python，需要公网 API。已帮你配好两条线：
 - `POST /api/bazi` — `mode`: `datetime` | `lunar` | `pillars`（详见此前文档示例）
 - `GET /api/locations` — 省市 / 国家城市
 
-静态资源：`/config.js`、`/ai-fortune/ai-fortune.js`
+静态资源：`/config.js`、`/locations.json`、`/ai-fortune/ai-fortune.js`  
+（`locations.json` 由 `python3 web-bazi-app/scripts/export_locations_json.py` 生成，与 `/api/locations` 一致；修改 `app.py` 里省市后请重新运行脚本。）
+
+**GitHub Pages**：无后端时页面会 **自动回退** 加载同目录下的 `locations.json`，省市下拉可正常使用；排盘仍依赖 `BAZI_API_BASE` 指向的 API。
 
 ---
 

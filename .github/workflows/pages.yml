@@ -29,6 +29,7 @@ jobs:
         run: |
           mkdir -p _site/ai-fortune
           cp web-bazi-app/frontend/index.html _site/
+          cp web-bazi-app/frontend/locations.json _site/
           cp web-bazi-app/frontend/ai-fortune/ai-fortune.js _site/ai-fortune/
           touch _site/.nojekyll
           if [ -n "${BAZI_API_BASE}" ]; then

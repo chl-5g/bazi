@@ -492,6 +492,11 @@ def spa_config():
     return send_from_directory(FRONTEND_DIR, "config.js")
 
 
+@app.route("/locations.json")
+def locations_json_file():
+    return send_from_directory(FRONTEND_DIR, "locations.json", mimetype="application/json")
+
+
 @app.route("/ai-fortune/<path:filename>")
 def ai_fortune_static(filename: str):
     return send_from_directory(FRONTEND_DIR / "ai-fortune", filename)
