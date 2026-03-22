@@ -102,12 +102,21 @@ Pages 上没有 Python，需要公网 API。已帮你配好两条线：
 
 后端已开 **`/api/*` CORS**（`flask-cors`），允许从 `github.io` 调用。
 
+### 排盘很慢？（常见不是算法慢）
+
+1. **Render 免费 Web Service** 约 **15 分钟无流量会休眠**，下一次请求要先 **冷启动**（常 **10～60 秒**），和「排盘算 1～2 秒」不是一回事。  
+   - **缓解**：用 [UptimeRobot](https://uptimerobot.com) 等每 **10～14 分钟** `GET` 一次你的 `https://xxx.onrender.com/api/health` 做保活。  
+   - **根治**：Render **付费**、**Always On**，或换国内/亚太更近的云。
+2. **跨国链路**：API 在美欧机房时，国内访问还要叠 **RTT + TLS**，体感会比本机 `localhost` 慢。
+3. **代码侧已做**：响应 **gzip**（`flask-compress`）、`gunicorn --timeout 120`；可选环境变量 **`BAZI_DA_YUN_MAX=10`**（默认 `14`）略减大运循环量（大运列会少一些）。
+
 ---
 
 ## API 摘要
 
 - `POST /api/bazi` — `mode`: `datetime` | `lunar` | `pillars`（详见此前文档示例）
 - `GET /api/locations` — 省市 / 国家城市
+- `GET /api/health` — 探活 / 保活（返回 `ok`、`da_yun_max`）
 
 静态资源：`/config.js`、`/locations.json`、`/ai-fortune/ai-fortune.js`  
 （`locations.json` 由 `python3 web-bazi-app/scripts/export_locations_json.py` 生成，与 `/api/locations` 一致；修改 `app.py` 里省市后请重新运行脚本。）

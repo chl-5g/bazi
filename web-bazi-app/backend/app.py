@@ -1,6 +1,7 @@
+import os
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 
 from flask import Flask, jsonify, request, send_from_directory
 from lunar_python import Lunar, Solar
@@ -17,6 +18,16 @@ FRONTEND_DIR = BASE_DIR / "frontend"
 app = Flask(__name__, static_folder=str(FRONTEND_DIR))
 if CORS is not None:
     CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+try:
+    from flask_compress import Compress
+
+    Compress(app)  # gzip 大 JSON，跨国访问时明显减少下载耗时
+except ImportError:
+    pass
+
+# getDaYun(n) 越大 CPU 越久；默认 14；可用环境变量 BAZI_DA_YUN_MAX=10 略加速（大运列会少几根）
+_DA_YUN_MAX = max(4, min(24, int(os.environ.get("BAZI_DA_YUN_MAX", "14"))))
 
 PROVINCES = {
     "beijing": {
@@ -368,6 +379,47 @@ def _apply_true_solar(dt, longitude, utc_offset=8.0):
     return dt + timedelta(minutes=minutes_offset)
 
 
+def _resolve_location(payload: dict) -> Tuple[float, float, str]:
+    """
+    从请求体解析出生地 → (经度, 时区偏移小时数, 展示用标签)。
+    domestic 固定 utc_offset=8；与 datetime / lunar 两路共用，避免重复维护。
+    """
+    location_type = payload.get("locationType", "domestic")
+    if location_type == "domestic":
+        province_code = payload.get("province", "")
+        city_code = payload.get("city", "")
+        province = PROVINCES.get(province_code)
+        if province is None:
+            raise ValueError("无效的省份")
+        city = province["cities"].get(city_code)
+        if city is None:
+            raise ValueError("无效的城市")
+        return float(city["longitude"]), 8.0, f"{province['name']}{city['name']}"
+    if location_type == "overseas":
+        country_code = payload.get("country", "")
+        city_code = payload.get("city", "")
+        country = OVERSEAS.get(country_code)
+        if country is None:
+            raise ValueError("无效的国家")
+        city = country["cities"].get(city_code)
+        if city is None:
+            raise ValueError("无效的城市")
+        return float(city["longitude"]), float(city["utc_offset"]), f"{country['name']}{city['name']}"
+    raise ValueError("无效的地址类型")
+
+
+def _validate_datetime_year_range(input_datetime: str) -> None:
+    """只做年份校验，完整解析仅在 build_bazi_result 里进行一次。"""
+    if not input_datetime or "T" not in input_datetime:
+        raise ValueError("请输入出生日期时间")
+    try:
+        y = int(input_datetime[:4])
+    except ValueError:
+        raise ValueError("请输入出生日期时间")
+    if not 1900 <= y <= 2100:
+        raise ValueError("请输入1900-2100之间的年份")
+
+
 def build_bazi_result(
     input_datetime: str,
     time_mode: str = "standard",
@@ -377,16 +429,21 @@ def build_bazi_result(
     gender: int = 1,
     sect: int = 2,
 ) -> dict:
-    dt = datetime.strptime(input_datetime, "%Y-%m-%dT%H:%M")
+    try:
+        dt = datetime.strptime(input_datetime, "%Y-%m-%dT%H:%M")
+    except ValueError:
+        raise ValueError("请输入出生日期时间") from None
     calc_dt = _apply_true_solar(dt, longitude, utc_offset) if time_mode == "true_solar" and longitude is not None else dt
     solar = Solar.fromYmdHms(calc_dt.year, calc_dt.month, calc_dt.day, calc_dt.hour, calc_dt.minute, calc_dt.second)
     lunar = solar.getLunar()
     eight_char = lunar.getEightChar()
     yun = eight_char.getYun(gender, sect)
 
+    y_p, m_p, d_p, t_p = eight_char.getYear(), eight_char.getMonth(), eight_char.getDay(), eight_char.getTime()
+
     da_yun_list = []
     xiao_yun_list = []
-    for item in yun.getDaYun(14):
+    for item in yun.getDaYun(_DA_YUN_MAX):
         if not item.getGanZhi():
             for x in item.getXiaoYun(10):
                 xiao_yun_list.append({"year": x.getYear(), "age": x.getAge(), "gan_zhi": x.getGanZhi()})
@@ -395,8 +452,9 @@ def build_bazi_result(
             break
         span = max(1, item.getEndYear() - item.getStartYear() + 1)
         liu_nian = item.getLiuNian(min(10, span))
+        gz = item.getGanZhi()
         da_yun_list.append({
-            "gan_zhi": item.getGanZhi(),
+            "gan_zhi": gz,
             "start_year": item.getStartYear(),
             "end_year": item.getEndYear(),
             "start_age": item.getStartAge(),
@@ -412,11 +470,11 @@ def build_bazi_result(
         "utc_offset": utc_offset,
         "location_label": location_label,
         "lunar_date": lunar.toString(),
-        "bazi": f"{eight_char.getYear()} {eight_char.getMonth()} {eight_char.getDay()} {eight_char.getTime()}",
-        "year_pillar": eight_char.getYear(),
-        "month_pillar": eight_char.getMonth(),
-        "day_pillar": eight_char.getDay(),
-        "time_pillar": eight_char.getTime(),
+        "bazi": f"{y_p} {m_p} {d_p} {t_p}",
+        "year_pillar": y_p,
+        "month_pillar": m_p,
+        "day_pillar": d_p,
+        "time_pillar": t_p,
         "yun": {
             "gender": gender,
             "sect": sect,
@@ -502,6 +560,12 @@ def ai_fortune_static(filename: str):
     return send_from_directory(FRONTEND_DIR / "ai-fortune", filename)
 
 
+@app.route("/api/health", methods=["GET"])
+def api_health():
+    """轻量探活；可用外部 cron 每 10～14 分钟请求一次，减轻 Render 免费实例冷启动（休眠后首次排盘很慢）。"""
+    return jsonify({"ok": True, "da_yun_max": _DA_YUN_MAX})
+
+
 @app.route("/api/locations")
 def get_locations():
     provinces = []
@@ -524,47 +588,16 @@ def get_bazi():
         if mode == "datetime":
             input_datetime = payload.get("datetime")
             time_mode = payload.get("timeMode", "standard")
-            location_type = payload.get("locationType", "domestic")
             gender = int(payload.get("gender", 1))
             sect = int(payload.get("sect", 2))
-            longitude_value = None
-            utc_offset = 8.0
-            location_label = None
-
-            if location_type == "domestic":
-                province_code = payload.get("province", "")
-                city_code = payload.get("city", "")
-                province = PROVINCES.get(province_code)
-                if province is None:
-                    return jsonify({"error": "无效的省份"}), 400
-                city = province["cities"].get(city_code)
-                if city is None:
-                    return jsonify({"error": "无效的城市"}), 400
-                longitude_value = city["longitude"]
-                location_label = f"{province['name']}{city['name']}"
-            elif location_type == "overseas":
-                country_code = payload.get("country", "")
-                city_code = payload.get("city", "")
-                country = OVERSEAS.get(country_code)
-                if country is None:
-                    return jsonify({"error": "无效的国家"}), 400
-                city = country["cities"].get(city_code)
-                if city is None:
-                    return jsonify({"error": "无效的城市"}), 400
-                longitude_value = city["longitude"]
-                utc_offset = city["utc_offset"]
-                location_label = f"{country['name']}{city['name']}"
-            else:
-                return jsonify({"error": "无效的地址类型"}), 400
-
-            if not input_datetime:
-                return jsonify({"error": "请输入出生日期时间"}), 400
             try:
-                dt_solar = datetime.strptime(input_datetime, "%Y-%m-%dT%H:%M")
-            except ValueError:
-                return jsonify({"error": "请输入出生日期时间"}), 400
-            if not (1900 <= dt_solar.year <= 2100):
-                return jsonify({"error": "请输入1900-2100之间的年份"}), 400
+                longitude_value, utc_offset, location_label = _resolve_location(payload)
+            except ValueError as e:
+                return jsonify({"error": str(e)}), 400
+            try:
+                _validate_datetime_year_range(input_datetime or "")
+            except ValueError as e:
+                return jsonify({"error": str(e)}), 400
             result = build_bazi_result(
                 input_datetime,
                 time_mode=time_mode,
@@ -582,38 +615,12 @@ def get_bazi():
             minute = int(payload.get("minute", 0))
             is_leap_month = bool(payload.get("isLeapMonth", False))
             time_mode = payload.get("timeMode", "standard")
-            location_type = payload.get("locationType", "domestic")
             gender = int(payload.get("gender", 1))
             sect = int(payload.get("sect", 2))
-            longitude_value = None
-            utc_offset = 8.0
-            location_label = None
-
-            if location_type == "domestic":
-                province_code = payload.get("province", "")
-                city_code = payload.get("city", "")
-                province = PROVINCES.get(province_code)
-                if province is None:
-                    return jsonify({"error": "无效的省份"}), 400
-                city = province["cities"].get(city_code)
-                if city is None:
-                    return jsonify({"error": "无效的城市"}), 400
-                longitude_value = city["longitude"]
-                location_label = f"{province['name']}{city['name']}"
-            elif location_type == "overseas":
-                country_code = payload.get("country", "")
-                city_code = payload.get("city", "")
-                country = OVERSEAS.get(country_code)
-                if country is None:
-                    return jsonify({"error": "无效的国家"}), 400
-                city = country["cities"].get(city_code)
-                if city is None:
-                    return jsonify({"error": "无效的城市"}), 400
-                longitude_value = city["longitude"]
-                utc_offset = city["utc_offset"]
-                location_label = f"{country['name']}{city['name']}"
-            else:
-                return jsonify({"error": "无效的地址类型"}), 400
+            try:
+                longitude_value, utc_offset, location_label = _resolve_location(payload)
+            except ValueError as e:
+                return jsonify({"error": str(e)}), 400
 
             result = build_bazi_from_lunar(
                 lunar_year, lunar_month, lunar_day, hour, minute,
@@ -639,7 +646,10 @@ def get_bazi():
             result = build_bazi_from_pillars(year_pillar, month_pillar, day_pillar, time_pillar, sect=sect, base_year=base_year)
         else:
             return jsonify({"error": "无效的模式"}), 400
-    except ValueError:
+    except ValueError as exc:
+        err = str(exc)
+        if err.startswith("请输入") or err.startswith("无效"):
+            return jsonify({"error": err}), 400
         return jsonify({"error": "请输入1900-2100之间的年份"}), 400
     except Exception as exc:
         return jsonify({"error": f"排盘失败: {exc}"}), 500

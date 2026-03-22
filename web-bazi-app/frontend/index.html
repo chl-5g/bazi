@@ -1139,7 +1139,8 @@
 
       // ===== 加载 =====
       function showLoading() {
-        resultWrap.innerHTML = '<div class="loading-overlay"><div class="spinner"></div><span>排盘中，请稍候…</span></div>';
+        resultWrap.innerHTML =
+          '<div class="loading-overlay"><div class="spinner"></div><span>排盘中，请稍候…</span><span style="margin-top:10px;font-size:13px;max-width:280px;text-align:center;color:var(--muted)">若久无响应，多半是云端 API 在「唤醒」（免费托管常见），再等片刻或稍后重试。</span></div>';
       }
 
       // ===== 渲染 =====
@@ -1199,6 +1200,16 @@
           var ocOpt = overseasCityInput.options[overseasCityInput.selectedIndex];
           return (ctOpt ? ctOpt.text : '') + ' ' + (ocOpt ? ocOpt.text : '');
         }
+      }
+
+      /** 供 AI 算命：合并接口结果与表单上的出生地、性别（四柱反查等场景接口可能无 location/yun） */
+      function buildAiFortuneContext() {
+        var d = window.__lastBaziResult;
+        if (!d) return null;
+        return Object.assign({}, d, {
+          _ai_birth_place: getLocationText(),
+          _ai_gender: $('gender').value,
+        });
       }
 
       function renderDatetimeResult(data) {
@@ -1324,9 +1335,7 @@
         scrollToResultOnMobile();
         window.__lastBaziResult = data;
         if (window.AiFortune && typeof window.AiFortune.bind === 'function') {
-          window.AiFortune.bind('aiFortuneBtn', 'aiFortuneOutput', function () {
-            return window.__lastBaziResult;
-          });
+          window.AiFortune.bind('aiFortuneBtn', 'aiFortuneOutput', buildAiFortuneContext);
         }
 
         function clearLuckActive() {

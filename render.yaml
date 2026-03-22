@@ -1,6 +1,9 @@
 # Render 一键部署排盘 API（免费 Web Service）
 # 使用：Render 控制台 New → Blueprint → 选本仓库，按提示连接 GitHub。
 # 部署完成后把公网 URL（如 https://bazi-api-xxxx.onrender.com）填到 GitHub 仓库变量 BAZI_API_BASE，再跑一次 Pages 工作流。
+#
+# 性能提示：免费实例约 15 分钟无访问会休眠，首次请求常需 10～60s「唤醒」；可用 UptimeRobot/cron 定时 GET /api/health。
+# 可选环境变量 BAZI_DA_YUN_MAX=10（默认 14）略减大运计算量；付费 Always On 或选离用户近的区域更有效。
 services:
   - type: web
     name: bazi-api
@@ -8,4 +11,4 @@ services:
     plan: free
     rootDir: web-bazi-app/backend
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --timeout 120
