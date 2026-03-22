@@ -21,8 +21,12 @@ bazi/
 ├── render.yaml            # Render 一键部署 API（可选）
 ├── bazi-mcp/              # 八字 MCP Server（cantian-ai）
 ├── bazi-mcp-custom/       # 自定义 MCP
+├── docs/
+│   └── cursor-git-commit.md   # Cursor Agent 触发 git commit 与旧版 Git 的说明
 └── README.md
 ```
+
+**Cursor 用户**：若 Agent 执行 `git commit` 出现 `unknown option trailer`，见 [`docs/cursor-git-commit.md`](docs/cursor-git-commit.md)。
 
 ---
 
