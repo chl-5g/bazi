@@ -560,6 +560,11 @@ def ai_fortune_static(filename: str):
     return send_from_directory(FRONTEND_DIR / "ai-fortune", filename)
 
 
+@app.route("/icons/<path:filename>")
+def icons_static(filename: str):
+    return send_from_directory(FRONTEND_DIR / "icons", filename)
+
+
 @app.route("/api/health", methods=["GET"])
 def api_health():
     """轻量探活；可用外部 cron 每 10～14 分钟请求一次，减轻 Render 免费实例冷启动（休眠后首次排盘很慢）。"""

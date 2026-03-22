@@ -19,6 +19,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" id="themeColorMeta" content="#eae8e3" />
     <title>八字排盘</title>
+    <!-- 标签页图标：须把 PNG 放首位。SVG favicon 多数浏览器不加载内嵌字体，会空白 -->
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
+    <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
     <style>
       :root {
         --bg: #f2f1ee;
@@ -880,6 +885,8 @@
       }
       var STATIC_BAZI_HINT =
         '当前为 GitHub Pages 静态页，无法直接排盘。请在仓库 Settings → Actions → Variables 设置 BAZI_API_BASE 为你的 Flask API（如 Render），或在本地运行 python app.py。';
+      var API_TIMEOUT_HINT =
+        '排盘接口连接超时。若使用 Render 免费服务，可能正在冷启动（约 10-90 秒）。请稍后重试。';
       function parseApiJsonBody(res, rawText) {
         var t = (rawText || '').trim();
         if (t.charAt(0) === '<' || (t.charAt(0) !== '{' && t.charAt(0) !== '[')) {
@@ -894,6 +901,58 @@
           e2._baziStatic = true;
           throw e2;
         }
+      }
+      function isAbortErr(err) {
+        return !!(err && (err.name === 'AbortError' || String(err.message || '').indexOf('timeout') !== -1));
+      }
+      async function fetchWithTimeout(url, options, timeoutMs) {
+        var controller = new AbortController();
+        var timer = setTimeout(function() {
+          controller.abort();
+        }, timeoutMs);
+        try {
+          var opts = Object.assign({}, options || {}, { signal: controller.signal });
+          return await fetch(url, opts);
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+      async function warmupApi() {
+        if (!apiBase()) return;
+        try {
+          await fetchWithTimeout(apiUrl('/api/health'), { cache: 'no-store' }, 25000);
+        } catch (e) {}
+      }
+      async function requestBazi(payload) {
+        var req = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) };
+        var timeouts = [35000, 80000];
+        var lastErr = null;
+        for (var i = 0; i < timeouts.length; i++) {
+          try {
+            if (i === 1) {
+              message.textContent = '接口唤醒中，正在重试...';
+              message.className = 'message';
+            }
+            var res = await fetchWithTimeout(apiUrl('/api/bazi'), req, timeouts[i]);
+            var raw = await res.text();
+            var data = parseApiJsonBody(res, raw);
+            return { res: res, data: data };
+          } catch (err) {
+            lastErr = err;
+            if (err && err._baziStatic) throw err;
+            if (isAbortErr(err)) {
+              await warmupApi();
+              continue;
+            }
+            break;
+          }
+        }
+        if (isAbortErr(lastErr)) {
+          var e = new Error(API_TIMEOUT_HINT);
+          e._baziTimeout = true;
+          throw e;
+        }
+        throw lastErr || new Error('请求失败');
       }
 
       // ===== 主题 =====
@@ -1396,9 +1455,9 @@
             if (isDomestic) { payload.province = provinceInput.value; payload.city = domesticCityInput.value; }
             else { payload.country = countryInput.value; payload.city = overseasCityInput.value; }
             try {
-              var res = await fetch(apiUrl('/api/bazi'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-              var raw = await res.text();
-              var d = parseApiJsonBody(res, raw);
+              var baziResp = await requestBazi(payload);
+              var res = baziResp.res;
+              var d = baziResp.data;
               if (!res.ok) { message.textContent = d.error || '排盘失败'; message.className = 'message error'; return; }
               renderDatetimeResult(d);
             } catch (err) {
@@ -1449,9 +1508,9 @@
         }
         showLoading();
         try {
-          var res = await fetch(apiUrl('/api/bazi'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-          var raw = await res.text();
-          var data = parseApiJsonBody(res, raw);
+          var baziResp = await requestBazi(payload);
+          var res = baziResp.res;
+          var data = baziResp.data;
           if (!res.ok) { message.textContent = data.error || '排盘失败'; message.className = 'message error'; resultWrap.innerHTML = ''; return; }
           if (mode === 'pillars') renderPillarsResult(data);
           else renderDatetimeResult(data);

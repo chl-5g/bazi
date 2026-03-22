@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>八字</title>
+  <defs>
+    <style type="text/css"><![CDATA[
+      @font-face {
+        font-family: "Ma Shan Zheng";
+        font-style: normal;
+        font-weight: 400;
+        src: url(data:font/woff2;base64,d09GMgABAAAAAAVwAA0AAAAACRgAAAUeAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGx4cHgZgAEQRCAqIeIZYCwoAATYCJAMQBCAFhCAHIBsJBxHVpB7INFIWzt/v/9rMT5I10voAWTE/VUTZinvSU9+kdWBY8bCmUqonv/VajwF51iRpu4CyMHD3MnW1tvyeP37zVL4mM1Sn75CYS7ikBI3EkCyLNVqnlIK5Nc7FRlCwHj18RIgMkSGxl0gNQAEADS58glq+cv12sAcdbCmr9Z6kclyn/Ug9BxsADdYkIAPrZBdqP0RREaBlrT2FYB5/uHvXimXQBh57eO1F6yMA7XfqGsyxctRvzU/WAzTGgWl9JCElKR10LduDfbnmseXMHn4QOyPWTyWSpdBmKUoBZbXCbCJ0mD1vC0DdyVK5BqsYaq7/RTD4+sTfP3bHXF+capjaPjXlIm8/jEec01X+PZ/M3xSqe+PNvapqZpRqvUnlVdWZ1HTF4J7XuIfGmH6YkDF1ItdXTDTIeQJOsRRhI0aW1avraLyIcIXBhSpHuEJvwhOFEZuZxOkFzfm+9YxY76swYjEYYywCEgKEHL8cGrewUlBBCysVmFjpdViFiS1JO0MUX6WfEY1I8BHGwNjOiETVTzOi3iwyooyEuNc0Rmj7VAYkFoXk1flYBAmzSS00bmElwlRPc4Qzt3LJvIq7lldVoTy/GieJTfKPr62NV/VmjmwtIBJHCKMwInEupUw5VagqQA6Skv2Jf+1OUs0oxWBkxGq9ObZb4YiZyY9VjKJBFpBQxUqSBQlYYFmOOBPCSnggTqJrLMgIsoAQKxWwST4CqqozyAh5pspIrnGSspK55EqOiP6NPCFsGitFdK5FC5t/zLHn0eS8Co8PH9VmJBP7KdV5LimBYY50zWW+3IxkgnVZk8/sIM0570G4wzRvcEGwSPQXXwuHF3emjlzYQX72PE945bFLaAvyqpj6CTiAul1Z+6qBwfLxZn9k+ZOLg7NNLr3Cn+QaLAn+qWho5iws0pnbLn2kS+HK1qXJyObYkjPrjp9LVHBWYq4NJWxj529K3Oq/2W5UoTqLIjbICy7b7VVTcWalrHNIV85j5cZuxi2XuPkHc0cyTNhMa98d9WVnKic62Zcw+UNxJoUkZ8XF/xQNOcVyycv11xPupHubACv7Qzl7i8mDCrH2CwYU+5tZL5Mrkp5cDx/Ws52tXibTSAeOnLYnXHtTQzQDLUsvpr3nLH0eJiDALRA6cqbU0U05/2LA0vNdb1Qo6qLBwpTSx213o536RbSkfjYZrUh942EzCN4uJDH6Kt84hbNt1KOIc5c4Ydk6JXTjhsfl69d5SgcHZ6o3dbEcgrkPXdZjPibUCcK+aujEtlZz8YCyy49GRv3t1q8XExUKO3R8NZfrnK/BUKDRkf8FUcL5yhL2+2cAACAAkGg0v3dgVyyf1Vd2inoBAOcztpwGgKcjF1X/8//rpN5SgzMXI1eKM/UH/ef/H0K9pV6simsM6gWaqBcQol5gAqdc9jNIGvzIBHO6DbUWQ4kdKTnJ4KDqNoJxKgQk8UpDlRd3oFCwwpzCgAZKFCYkEaWwoAITn5efAdJQhCLkoRAW0IUucgHJyEEKWnNQhCykI/H1TSGSoYNcFCAV3ohHINIQjxxEIK0GqdBGQIJUFCMLlwoQgmQUoBDpfS7RMIAO9KAHg9Y4LfO0qNF99l9hiQiEwxmOsPQe8hjTL3T8MJSjAOnJCMMYs1UP+jADjSDLOrRfkYYfobnIQDISm8AexSgiI6TNhaChFq+GML16qRgJ0EEicpFd6M1FLlKRheTg6wuhi2zEs+XJVITqf4i+b/s/BQMoAAAA) format("woff2");
+      }
+      .mashan {
+        font-family: "Ma Shan Zheng", serif;
+        font-size: 178px;
+        fill: #0a0a0a;
+      }
+    ]]></style>
+    <clipPath id="inner"><rect x="36" y="36" width="440" height="440"/></clipPath>
+  </defs>
+  <rect width="512" height="512" fill="#f7f7f5"/>
+  <rect x="22" y="22" width="468" height="468" fill="none" stroke="#0a0a0a" stroke-width="26" rx="2"/>
+  <g clip-path="url(#inner)">
+    <text class="mashan" x="256" y="256" text-anchor="middle" dominant-baseline="central">八字</text>
+  </g>
+</svg>

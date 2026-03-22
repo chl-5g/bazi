@@ -30,8 +30,11 @@ jobs:
           # 优先 Repository / Environment 的 Variables；若误放在 Secrets 里也可读到
           BAZI_API_BASE: ${{ vars.BAZI_API_BASE || secrets.BAZI_API_BASE }}
         run: |
-          mkdir -p _site/ai-fortune
+          mkdir -p _site/ai-fortune _site/icons
           cp web-bazi-app/frontend/index.html _site/
+          cp web-bazi-app/frontend/icons/icon.svg web-bazi-app/frontend/icons/favicon-32.png \
+            web-bazi-app/frontend/icons/apple-touch-icon.png web-bazi-app/frontend/icons/icon-512.png \
+            _site/icons/
           cp web-bazi-app/frontend/locations.json _site/
           cp web-bazi-app/frontend/ai-fortune/ai-fortune.js _site/ai-fortune/
           touch _site/.nojekyll
