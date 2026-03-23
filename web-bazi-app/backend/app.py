@@ -448,8 +448,6 @@ def build_bazi_result(
             for x in item.getXiaoYun(10):
                 xiao_yun_list.append({"year": x.getYear(), "age": x.getAge(), "gan_zhi": x.getGanZhi()})
             continue
-        if item.getStartAge() > 120:
-            break
         span = max(1, item.getEndYear() - item.getStartYear() + 1)
         liu_nian = item.getLiuNian(min(10, span))
         gz = item.getGanZhi()
@@ -458,7 +456,7 @@ def build_bazi_result(
             "start_year": item.getStartYear(),
             "end_year": item.getEndYear(),
             "start_age": item.getStartAge(),
-            "end_age": min(item.getEndAge(), 120),
+            "end_age": item.getEndAge(),
             "liu_nian": [{"year": n.getYear(), "gan_zhi": n.getGanZhi()} for n in liu_nian],
         })
 

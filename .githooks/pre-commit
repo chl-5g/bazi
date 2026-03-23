@@ -1,0 +1,18 @@
+#!/bin/sh
+# 阻止将机密路径加入提交（含 git add -f）。见 docs/REPOSITORY-PUBLIC-BOUNDARY.md
+set -e
+STAGED=$(git diff --cached --name-only --diff-filter=ACM)
+[ -z "$STAGED" ] && exit 0
+
+echo "$STAGED" | grep -E -e '^docs/blind-fate' \
+  -e '^docs/disk-space-asr\.md$' \
+  -e '^blind_fate' \
+  -e '^local/blind-fate-private/' \
+  -e '^tools/course-transcribe/' && {
+  echo ""
+  echo "pre-commit: 拒绝提交 — 路径属于机密范围（见 docs/REPOSITORY-PUBLIC-BOUNDARY.md）"
+  echo "请: git restore --staged <文件>  并确认未使用 -f 强添加"
+  exit 1
+}
+
+exit 0

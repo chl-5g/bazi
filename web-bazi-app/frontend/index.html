@@ -1271,7 +1271,9 @@
         });
       }
 
+      var __resultRenderSeq = 0;
       function renderDatetimeResult(data) {
+        var renderSeq = ++__resultRenderSeq;
         updateHeadUser();
         var metaHtml = '阳历：' + data.solar_datetime + '<br/>阴历：' + data.lunar_date;
         if (data.time_mode === 'true_solar' && data.calc_datetime && data.calc_datetime !== data.solar_datetime) {
@@ -1306,13 +1308,11 @@
         // 流年干支
         function yearGZ(y) { return JIA_ZI[((y - 4) % 60 + 60) % 60]; }
 
-        // 大运流年表格
-        var lt = '';
-        if (daYun.length) {
+        function buildLuckTableHtml() {
           var maxLn = 0;
           daYun.forEach(function(d) { if (d.liu_nian && d.liu_nian.length > maxLn) maxLn = d.liu_nian.length; });
 
-          lt += '<table class="luck-table" data-luck-layout="auto-v1"><thead>';
+          var lt = '<table class="luck-table" data-luck-layout="auto-v1"><thead>';
           lt += '<tr><th class="stub">大运</th><th class="stub">小运</th>';
           daYun.forEach(function(d) {
             lt += '<th class="dy-header">';
@@ -1360,25 +1360,26 @@
             lt += '</tr>';
           }
           lt += '</tbody></table>';
+          return lt;
         }
 
         var h = '<div class="result-block block-pillar" id="pillarBlock">';
         h += pillarTitleHtml('');
         h += buildPillarTable(baseCols);
         h += '</div>';
-        if (lt) {
+        var qyText = '';
+        if (yun.start_year !== undefined) {
+          var parts = [];
+          if (yun.start_year > 0) parts.push(yun.start_year + '年');
+          if (yun.start_month > 0) parts.push(yun.start_month + '月');
+          if (yun.start_day > 0) parts.push(yun.start_day + '日');
+          qyText = '出生后' + (parts.length ? parts.join('') : '0日') + '起运　';
+        }
+        if (daYun.length) {
           h += '<div class="result-block block-luck">';
-          var qyText = '';
-          if (yun.start_year !== undefined) {
-            var parts = [];
-            if (yun.start_year > 0) parts.push(yun.start_year + '年');
-            if (yun.start_month > 0) parts.push(yun.start_month + '月');
-            if (yun.start_day > 0) parts.push(yun.start_day + '日');
-            qyText = '出生后' + (parts.length ? parts.join('') : '0日') + '起运　';
-          }
           h += '<div class="section-title">大运 / 流年 <span class="block-luck-sub">' + qyText + '点击流年或小运查看</span></div>';
           h += '<p class="luck-scroll-hint" role="note">← 左右滑动查看全部大运列 →</p>';
-          h += '<div class="luck-wrap">' + lt + '</div>';
+          h += '<div class="luck-wrap" id="luckWrap"><div style="padding:10px 0;color:var(--muted)">大运/流年渲染中...</div></div>';
           h += '</div>';
         }
 
@@ -1400,35 +1401,53 @@
         function clearLuckActive() {
           resultWrap.querySelectorAll('.ln-cell.active, .xy-cell.active').forEach(function(a) { a.classList.remove('active'); });
         }
-
-        resultWrap.querySelectorAll('.ln-cell[data-ln]').forEach(function(el) {
-          el.addEventListener('click', function() {
-            clearLuckActive();
-            this.classList.add('active');
-            var lnAge = this.getAttribute('data-age');
-            var extra = [
-              { t: '大运', v: this.getAttribute('data-dy') },
-              { t: this.getAttribute('data-year') + '<br/>流年', v: this.getAttribute('data-ln') },
-            ];
-            $('pillarBlock').innerHTML = pillarTitleHtml(lnAge) + buildPillarTable(baseCols, extra);
+        function bindLuckInteractions() {
+          resultWrap.querySelectorAll('.ln-cell[data-ln]').forEach(function(el) {
+            el.addEventListener('click', function() {
+              clearLuckActive();
+              this.classList.add('active');
+              var lnAge = this.getAttribute('data-age');
+              var extra = [
+                { t: '大运', v: this.getAttribute('data-dy') },
+                { t: this.getAttribute('data-year') + '<br/>流年', v: this.getAttribute('data-ln') },
+              ];
+              $('pillarBlock').innerHTML = pillarTitleHtml(lnAge) + buildPillarTable(baseCols, extra);
+            });
           });
-        });
 
-        resultWrap.querySelectorAll('.xy-cell[data-xy]').forEach(function(el) {
-          el.addEventListener('click', function() {
-            clearLuckActive();
-            this.classList.add('active');
-            var age = this.getAttribute('data-age');
-            var lnGZ = this.getAttribute('data-ln');
-            var lnYear = this.getAttribute('data-year');
-            var lnAge = ageAtLiuYear(lnYear);
-            var extra = [
-              { t: age + '岁<br/>小运', v: this.getAttribute('data-xy') },
-              { t: lnYear + '<br/>流年', v: lnGZ },
-            ];
-            $('pillarBlock').innerHTML = pillarTitleHtml(lnAge) + buildPillarTable(baseCols, extra);
+          resultWrap.querySelectorAll('.xy-cell[data-xy]').forEach(function(el) {
+            el.addEventListener('click', function() {
+              clearLuckActive();
+              this.classList.add('active');
+              var age = this.getAttribute('data-age');
+              var lnGZ = this.getAttribute('data-ln');
+              var lnYear = this.getAttribute('data-year');
+              var lnAge = ageAtLiuYear(lnYear);
+              var extra = [
+                { t: age + '岁<br/>小运', v: this.getAttribute('data-xy') },
+                { t: lnYear + '<br/>流年', v: lnGZ },
+              ];
+              $('pillarBlock').innerHTML = pillarTitleHtml(lnAge) + buildPillarTable(baseCols, extra);
+            });
           });
-        });
+        }
+
+        if (daYun.length) {
+          var renderLuckAsync = function() {
+            if (renderSeq !== __resultRenderSeq) return; // 用户已发起新请求，丢弃旧渲染
+            var luckWrap = $('luckWrap');
+            if (!luckWrap) return;
+            luckWrap.innerHTML = buildLuckTableHtml();
+            bindLuckInteractions();
+          };
+          if (window.requestAnimationFrame) {
+            window.requestAnimationFrame(function() {
+              setTimeout(renderLuckAsync, 0);
+            });
+          } else {
+            setTimeout(renderLuckAsync, 0);
+          }
+        }
       }
 
       function renderPillarsResult(data) {

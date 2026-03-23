@@ -8,3 +8,20 @@ dist/
 logs/
 .DS_Store
 .cursor/
+# 本地课程 ASR 全文（勿提交，避免版权与体积）
+local/course-transcripts/
+# Whisper / Transformers.js 模型缓存（可整目录删除，需要时会重新下）
+local/.transformers-cache/
+# 误建的 Python 转写环境（已改用 Node，可删）
+.venv-transcribe/
+
+# ---------------------------------------------------------------------------
+# 核心机密（产品 / 课程衍生）：禁止提交到 GitHub 或任何公开远程
+# 说明见 docs/REPOSITORY-PUBLIC-BOUNDARY.md
+# ---------------------------------------------------------------------------
+docs/blind-fate-*
+docs/disk-space-asr.md
+blind_fate*.txt
+local/blind-fate-private/
+# 整目录：含素材路径、集名、纠错表等，仅本机保留
+tools/course-transcribe/

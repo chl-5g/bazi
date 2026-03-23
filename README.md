@@ -22,11 +22,14 @@ bazi/
 ├── bazi-mcp/              # 八字 MCP Server（cantian-ai）
 ├── bazi-mcp-custom/       # 自定义 MCP
 ├── docs/
-│   └── cursor-git-commit.md   # Cursor Agent 触发 git commit 与旧版 Git 的说明
+│   ├── cursor-git-commit.md
+│   └── REPOSITORY-PUBLIC-BOUNDARY.md  # 机密不入 GitHub；见内文启用 .githooks
 └── README.md
 ```
 
 **Cursor 用户**：若 Agent 执行 `git commit` 出现 `unknown option trailer`，见 [`docs/cursor-git-commit.md`](docs/cursor-git-commit.md)。
+
+**机密内容**：盲派规则、课程转写工具链等**不得**推送到公开远程；路径与钩子见 [`docs/REPOSITORY-PUBLIC-BOUNDARY.md`](docs/REPOSITORY-PUBLIC-BOUNDARY.md)。
 
 ---
 
@@ -52,7 +55,7 @@ bazi/
 ```bash
 cd web-bazi-app/backend
 pip3 install -r requirements.txt
-python3 app.py
+BAZI_DA_YUN_MAX=10 python3 app.py
 # 浏览器打开 http://localhost:8000
 ```
 
