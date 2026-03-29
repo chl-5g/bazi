@@ -33,6 +33,25 @@ bazi/
 
 ---
 
+## 仓库精简与清理
+
+为避免仓库膨胀与误提交，本仓库默认将以下内容视为**本地运行产物**，不纳入版本管理：
+
+- `local/*.log` 等本地调试日志
+- `tools/course-transcribe/`（课程 ASR 私有工具链）
+- `tools/local_chain_proxy.py`（本地链路代理调试脚本）
+- `local/.transformers-cache/`、`node_modules/` 等可再生缓存/依赖目录
+
+建议定期清理本地冗余文件（不影响业务功能，后续可自动重建）：
+
+```bash
+rm -f local/*.log
+rm -rf local/.transformers-cache
+rm -rf tools/course-transcribe/node_modules
+```
+
+---
+
 ## Web 应用功能摘要
 
 - **三种排盘**：公历时间 / 农历（含闰月）/ 四柱反查公历（1900–2100）

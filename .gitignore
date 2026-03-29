@@ -25,3 +25,7 @@ blind_fate*.txt
 local/blind-fate-private/
 # 整目录：含素材路径、集名、纠错表等，仅本机保留
 tools/course-transcribe/
+# 本地链路代理调试工具与日志（非 Bazi 业务代码）
+tools/local_chain_proxy.py
+local/chain_watch.log
+local/local_chain_proxy.log
