@@ -29,3 +29,11 @@ tools/course-transcribe/
 tools/local_chain_proxy.py
 local/chain_watch.log
 local/local_chain_proxy.log
+
+# ---------------------------------------------------------------------------
+# 精华内容·勿提交
+# ---------------------------------------------------------------------------
+skills/
+Learning Materials/
+output/
+.claude/
