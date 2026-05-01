@@ -17,13 +17,22 @@ bazi/
 │   ├── backend/           # Flask API（lunar_python）
 │   ├── frontend/          # index.html、config.js、ai-fortune/
 │   └── ai-divination/     # 程序化解读 / AI 逻辑占位（Python 包）
+├── skills/                # 🔒 21步workflow技能文件（gitignored，含核心机制s00）
+├── tools/
+│   ├── bazi_workflow.py   # Workflow引擎（加载skills→顺序执行→传递上下文）
+│   ├── bazi_calc.py       # 排盘底座（封装lunar_python，输出结构化JSON）
+│   └── llm_runner.py      # LLM调用封装
 ├── .github/workflows/     # GitHub Actions：部署 Pages
 ├── render.yaml            # Render 一键部署 API（可选）
 ├── bazi-mcp/              # 八字 MCP Server（cantian-ai）
 ├── bazi-mcp-custom/       # 自定义 MCP
 ├── docs/
+│   ├── 算命.skills        # AI大模型直接使用的算命prompt
+│   ├── 盲派断命skills.md  # 盲派断命方法论文档
 │   ├── cursor-git-commit.md
 │   └── REPOSITORY-PUBLIC-BOUNDARY.md  # 机密不入 GitHub；见内文启用 .githooks
+├── Learning Materials/    # 🔒 42节课ASR转录+六本古籍原文（gitignored）
+├── output/                # 🔒 Workflow输出结果（gitignored）
 └── README.md
 ```
 
@@ -32,6 +41,21 @@ bazi/
 **机密内容**：盲派规则、课程转写工具链等**不得**推送到公开远程；路径与钩子见 [`docs/REPOSITORY-PUBLIC-BOUNDARY.md`](docs/REPOSITORY-PUBLIC-BOUNDARY.md)。
 
 ---
+
+## Workflow 推命引擎
+
+`tools/bazi_workflow.py` — 21 步推命引擎，按顺序加载 `skills/s00-s20` 并自动执行。
+
+- **核心机制层**（s00）：冲合害穿破本质 = 生克 + 阴阳匹配。偏印生翻转、土免疫、穿vs破区别、合=锁定、冲=同阴阳克碰撞、暗合、干支自合、十二长生vs生克体系区分等底层定理
+- **排盘→推命→报告**（s01-s20）：19 步完整推命链路
+- 引擎只做三件事：加载 skills → 按顺序执行 → 传递上下文
+
+本地执行：
+```bash
+python3 tools/bazi_workflow.py summary      # 列出所有步骤
+python3 tools/bazi_workflow.py prompt       # 输出完整prompt
+python3 tools/bazi_workflow.py run "1984-05-18 14:00" 乾造 黑龙江  # 自动推命
+```
 
 ## 仓库精简与清理
 
