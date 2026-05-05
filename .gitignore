@@ -37,3 +37,9 @@ skills/
 Learning Materials/
 output/
 .claude/
+
+# Web app runtime logs
+web-bazi-app/logs/
+
+# Local utilities (non-bazi tools)
+local/

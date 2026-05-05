@@ -75,9 +75,21 @@ def parse_skill(filepath: Path) -> Skill | None:
 def load_all_skills() -> list[Skill]:
     skills = []
     for f in sorted(SKILLS_DIR.glob('s*.md')):
+        if f.name == 's00_mechanism.md':
+            continue  # s00 作为静态知识注入，不占独立步骤
         s = parse_skill(f)
         if s: skills.append(s)
     return skills
+
+
+def load_mechanism() -> str:
+    """加载底层机制，注入所有步骤的 system prompt 前缀。"""
+    f = SKILLS_DIR / 's00_mechanism.md'
+    if f.exists():
+        s = parse_skill(f)
+        if s:
+            return f"【底层机制——必须在分析前内化】\n{s.content}\n---\n"
+    return ""
 
 
 def build_prompt() -> str:
@@ -163,7 +175,7 @@ def run_workflow(birth: str, gender: str = "乾造", birthplace: str = "",
     - 每步传入 排盘 + 全部前序步骤输出（不只按前置过滤）
     """
     from bazi_calc import get_chart, chart_to_text
-    from llm_runner import call, ANTHROPIC_MODEL
+    from llm_runner import call_full, ANTHROPIC_MODEL
 
     model = model or ANTHROPIC_MODEL
     log = _setup_logger(birth, gender, model)
@@ -173,6 +185,9 @@ def run_workflow(birth: str, gender: str = "乾造", birthplace: str = "",
         log.error("workflow.no_skills")
         print("错误：未加载到任何 skill 文件")
         return {}
+
+    # 加载底层机制，作为每个步骤 system prompt 的前缀
+    mechanism = load_mechanism()
 
     # 排盘
     if verbose:
@@ -191,11 +206,15 @@ def run_workflow(birth: str, gender: str = "乾造", birthplace: str = "",
     with open(out_file, 'w', encoding='utf-8') as f:
         f.write(f"# 八字推命结果\n\n")
         f.write(f"出生: {birth}  性别: {gender}  出生地: {birthplace}\n\n")
+        f.write(f"模型: {model}  共{len(skills)}步\n\n")
         f.write(f"```\n{chart_text}\n```\n")
     if verbose:
         print(f"实时输出: {out_file}\n")
 
     outputs = {}
+    total_input_tokens = 0
+    total_output_tokens = 0
+    step_stats = []
 
     for i, skill in enumerate(skills):
         step_num = i + 1
@@ -203,48 +222,82 @@ def run_workflow(birth: str, gender: str = "乾造", birthplace: str = "",
         if verbose:
             print(f"[{step_num}/{len(skills)}] {skill.id} — {skill.name} ... ", end="", flush=True)
 
-        # 构建上下文：排盘 + 全部前序步骤输出
+        # 构建上下文：排盘 + 全部前序步骤输出（每步只取结论，截断到500字）
         user_parts = [f"## 排盘数据\n{chart_text}"]
         prior_ids = []
         for sid, text in outputs.items():
             prior_ids.append(sid)
-            if len(text) > 3000 and step_num <= 5:
-                text = text[:3000] + "\n...(截断)"
-            user_parts.append(f"## {sid} 输出\n{text}")
+            # 只保留尾部（结论部分），大幅削减上下文
+            if len(text) > 500:
+                text = text[-500:] + "\n...(前文已截断)"
+            user_parts.append(f"## {sid}\n{text}")
         user_prompt = "\n\n".join(user_parts)
 
-        # 记录本步输入
-        log.info("step.start", step=step_num, skill_id=skill.id, skill_name=skill.name,
-                 system_prompt_len=len(skill.content), system_prompt_preview=skill.content[:300],
-                 user_prompt_len=len(user_prompt), prior_steps=prior_ids,
-                 declared_deps=skill.required_inputs)
+        # 注入底层机制作为 system prompt 前缀
+        system_prompt = mechanism + skill.content if mechanism else skill.content
 
-        # 调用 LLM
-        result = call(skill.content, user_prompt, model=model)
+        # 调用 LLM（使用 call_full 获取完整返回数据）
+        full = call_full(system_prompt, user_prompt, model=model)
         elapsed = round(_time.time() - t0, 2)
+        text = full["text"]
+        is_error = full.get("error", False)
+        in_tok = full.get("input_tokens", 0)
+        out_tok = full.get("output_tokens", 0)
+        total_input_tokens += in_tok
+        total_output_tokens += out_tok
 
-        if result.startswith("ERROR"):
+        if is_error or text.startswith("ERROR"):
             if verbose:
-                print(f"失败: {result[:100]}")
-            result = f"执行失败: {result}"
-            outputs[skill.id] = result
+                print(f"失败: {text[:100]}")
+            text = f"执行失败: {text}"
+            outputs[skill.id] = text
             log.error("step.failed", step=step_num, skill_id=skill.id,
-                      error=result[:300], elapsed_s=elapsed)
+                      skill_name=skill.name, error=text[:500], elapsed_s=elapsed,
+                      input_tokens=in_tok, output_tokens=out_tok,
+                      total_input_tokens=total_input_tokens,
+                      total_output_tokens=total_output_tokens)
         else:
-            outputs[skill.id] = result
+            outputs[skill.id] = text
             log.info("step.done", step=step_num, skill_id=skill.id,
-                     output_len=len(result), output_preview=result[:300],
-                     elapsed_s=elapsed)
+                     skill_name=skill.name,
+                     output_len=len(text), output_full=text,
+                     input_tokens=in_tok, output_tokens=out_tok,
+                     total_input_tokens=total_input_tokens,
+                     total_output_tokens=total_output_tokens,
+                     elapsed_s=elapsed, model=full.get("model", model),
+                     stop_reason=full.get("stop_reason", ""))
             if verbose:
-                preview = result[:80].replace('\n', ' ')
-                print(f"OK ({len(result)}字/{elapsed}s) — {preview}...")
+                preview = text[:80].replace('\n', ' ')
+                print(f"OK ({len(text)}字/{elapsed}s/{in_tok}+{out_tok}tk) — {preview}...")
+
+        step_stats.append({
+            "step": step_num, "skill_id": skill.id, "skill_name": skill.name,
+            "output_len": len(text), "input_tokens": in_tok, "output_tokens": out_tok,
+            "elapsed_s": elapsed, "error": is_error,
+        })
 
         # 实时写入
         _write_step(out_file, skill.id, skill.name, outputs[skill.id])
 
-    log.info("workflow.done", total_steps=len(skills), output_file=str(out_file))
+    # 写入汇总统计
+    with open(out_file, 'a', encoding='utf-8') as f:
+        f.write(f"\n---\n## 执行统计\n\n")
+        f.write(f"| 步骤 | Skill | 输出字数 | 输入tk | 输出tk | 耗时 |\n")
+        f.write(f"|------|-------|---------|--------|--------|------|\n")
+        for s in step_stats:
+            status = "ERR" if s["error"] else "OK"
+            f.write(f"| {s['step']} | {s['skill_id']} | {s['output_len']} | {s['input_tokens']} | {s['output_tokens']} | {s['elapsed_s']}s |\n")
+        f.write(f"\n**总计**: {total_input_tokens} input + {total_output_tokens} output = {total_input_tokens + total_output_tokens} tokens\n")
+
+    log.info("workflow.done", total_steps=len(skills),
+             total_input_tokens=total_input_tokens,
+             total_output_tokens=total_output_tokens,
+             total_tokens=total_input_tokens + total_output_tokens,
+             output_file=str(out_file))
+
     if verbose:
         print(f"\n全部 {len(skills)} 步执行完毕 → {out_file}")
+        print(f"Token: {total_input_tokens} in + {total_output_tokens} out = {total_input_tokens + total_output_tokens}")
 
     return outputs
 
@@ -294,6 +347,76 @@ if __name__ == "__main__":
 
         outputs = run_workflow(birth, gender, birthplace)
         print(f"\n完整结果: {_out_dir() / _slug(birth, gender)}.md")
+
+    elif cmd == "test":
+        # 单步测试：只跑一个 skill，秒级验证
+        # python bazi_workflow.py test s03 "1961-09-27 06:00" 乾造 [出生地] [--std STANDARD.md]
+        if len(sys.argv) < 4:
+            print("用法: python bazi_workflow.py test <skill_id> 'YYYY-MM-DD HH:MM' 乾造 [出生地] [--std STANDARD.md]")
+            sys.exit(1)
+
+        sid = sys.argv[2]
+        birth = sys.argv[3]
+        gender = sys.argv[4] if len(sys.argv) > 4 else "乾造"
+        birthplace = ""
+        std_file = None
+
+        for i, arg in enumerate(sys.argv[5:], start=5):
+            if arg == "--std" and i + 1 < len(sys.argv):
+                std_file = Path(sys.argv[i + 1])
+            elif sys.argv[i-1] != "--std":
+                birthplace = arg
+
+        from bazi_calc import get_chart, chart_to_text
+        from llm_runner import call_full, ANTHROPIC_MODEL
+
+        all_skills = {s.id: s for s in load_all_skills()}
+        skill = all_skills.get(sid)
+        if not skill:
+            print(f"未知 skill: {sid}")
+            print(f"可用: {', '.join(all_skills.keys())}")
+            sys.exit(1)
+
+        # 排盘
+        chart = get_chart(birth, gender, birthplace)
+        chart_text = chart_to_text(chart)
+        print(f"排盘: {birth} {gender} {birthplace}")
+        print(f"日主: {chart['day_master']}  起运: {chart['qi_yun']['age']}岁")
+        print(f"测试: {sid} — {skill.name}\n")
+
+        # 构建上下文
+        mechanism = load_mechanism()
+        user_parts = [f"## 排盘数据\n{chart_text}"]
+
+        if std_file and std_file.exists():
+            # 从标准答案文件读取前序步骤输出
+            std_text = std_file.read_text(encoding='utf-8')
+            import re
+            # 找到目标 skill 之前的步骤
+            skill_order = [s.id for s in load_all_skills()]
+            target_idx = skill_order.index(sid)
+            for prior_sid in skill_order[:target_idx]:
+                # 匹配 ## sXX_xxx: ... 到下一个 ## 之间的内容
+                pattern = rf'## {prior_sid}:.*?\n(.*?)(?=\n## s|\Z)'
+                m = re.search(pattern, std_text, re.DOTALL)
+                if m:
+                    prior_text = m.group(1).strip()
+                    if len(prior_text) > 500:
+                        prior_text = prior_text[-500:]
+                    user_parts.append(f"## {prior_sid} (标准答案)\n{prior_text}")
+                    print(f"  + {prior_sid} 标准答案已注入")
+            print()
+
+        user_prompt = "\n\n".join(user_parts)
+        system_prompt = mechanism + skill.content if mechanism else skill.content
+
+        print(f"System prompt: {len(system_prompt)} 字")
+        print(f"User prompt: {len(user_prompt)} 字")
+        print(f"调用 LLM ...\n")
+
+        full = call_full(system_prompt, user_prompt)
+        print(full["text"])
+        print(f"\n--- Token: {full.get('input_tokens', '?')} in + {full.get('output_tokens', '?')} out ---")
     else:
         print(f"未知命令: {cmd}")
         print("可用命令: summary, prompt, run")
